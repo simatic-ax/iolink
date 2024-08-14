@@ -1,0 +1,126 @@
+NAMESPACE Simatic.Ax.IOLink
+TYPE
+  LIOLink_3UG4841_typeDiag : STRUCT
+  /// LIOLink_3UG4841_typeDiag
+//Data set (index) 92 - diagnostics
+      reserved : Array[0..15] of Byte;   // Reserved
+      ready : Bool;   // Ready
+      groupError : Bool;   // Group error
+      groupWarning : Bool;   // Group warning
+      reserved1 : Bool;   // Reserved
+      reserved2 : Bool;   // Reserved
+      parameterAssign : Bool;   // Parameter assignment active
+      parameterInvalid : Bool;   // Invalid parameter
+      internalError : Bool;   // Self-test error/internal error
+      reserved3 : Byte;   // Reserved
+      errorNumber : Word;   // Parameter error number
+      reserved4 : Array[20..25] of Byte;   // Reserved
+      delayTimeRunning : Bool;   // ON-delay time running
+      delayCosPhiUp : Bool;   // Tripping delay time running (threshold for overshoot: cos phi value)
+      delayLCosPhiDown : Bool;   // Tripping delay time running (threshold for undershoot: cos phi value)
+      delayCurrentUp : Bool;   // Tripping delay time running (threshold for overshoot: active current value)
+      delayCurrentDown : Bool;   // Tripping delay time running (threshold for undershoot: active current value)
+      reserved5 : Bool;   // Reserved
+      reserved6 : Bool;   // Reserved
+      reserved7 : Bool;   // Reserved
+      cosPhiUp : Bool;   // Threshold value for overshoot exceeded (cos phi value)
+      cosPhiDown : Bool;   // Threshold value for undershoot violated (cos phi value)
+      currentUp : Bool;   // Threshold for overshoot exceeded (active current value)
+      currentDown : Bool;   // Threshold for undershoot violated (active current value)
+      warningCosPhiUp : Bool;   // Warning threshold for overshoot exceeded (cos phi value)
+      warningCosPhiDown : Bool;   // Warning threshold for undershoot violated (cos phi value)
+      warningCurrentUp : Bool;   // Warning threshold for overshoot exceeded (active current value)
+      warningCurrentDown : Bool;   // Warning threshold for undershoot violated (active current value)
+      reserved8 : Word;   // Reserved
+   END_STRUCT;
+
+END_TYPE
+
+TYPE
+  LIOLink_3UG4841_typeMeasure : STRUCT
+  /// LIOLink_3UG4841_typeMeasure
+//Data set (index) 94 (measured values)
+      reserved : Array[0..15] of Byte;   // Reserved
+      valueCosPhiPa : Word;   // Cos Phi Value (PA) Min:0 Max:0,99
+      currentActivePa : Word;   // Active current Ir/Ires (PA) Min:0,2A Max:10A
+      currentApparentPa : Word;   // Apparent current Is (PA) Min:0,2A Max:10A
+      voltageActivePa : Word;   // Active voltage U (PA) Min:30V Max:690V
+      powerActivePa : Word;   // Active power Pw (PA) Min:6W Max:6900W
+      reserved1 : Array[26..29] of Byte;   // Reserved
+      currentActive : DWord;   // Active current Ir/Ires (PA) Min:0,2A Max:10A
+      currentApparent : DWord;   // Apparent current Is Min:0,2A Max:10A
+      powerActive : DWord;   // Active power Pw Min:6W Max:6900W
+      reserved2 : Array[42..49] of Byte;   // Reserved
+   END_STRUCT;
+
+END_TYPE
+
+TYPE
+  LIOLink_3UG4841_typeParam : STRUCT
+  /// LIOLink_3UG4841_typeParam
+//Data set (index) 131 (parameters)
+      reserved : Array[0..15] of Byte;   // Reserved
+      groupDiagnostics : Bool := TRUE;   // Group diagnostics: Default: true, false; disabled, true: enabled
+      groupErrorDiagnostics : Bool := TRUE;   // Group error diagnostics: Default: true, false; disabled, true: enabled
+      reserved1 : Bool;   // Reserved
+      reserved2 : Bool;   // Reserved
+      localLimitChange : Bool := TRUE;   // Local threshold change: Default: true, false; disabled, true: enabled
+      localParameterChange : Bool := TRUE;   // Local parameter change: Default: true, false; disabled, true: enabled
+      localReset : Bool := TRUE;   // Local reset: Default: true, false; disabled, true: enabled
+      retentiveErrorMemory : Bool;   // Retentive error memory: Default: false, false; disabled, true: enabled
+      analogValueCoding : Byte := BYTE#16#2B;   // Analog value coding: Default: 43, Min: 0(disabled), Max: 255
+      reserved3 : Array[18..23] of Byte;   // Reserved
+      resetResponse : Byte := BYTE#16#01;   // Reset response: Default: 16#01, 16#00: manual, 16#01: automatic
+      delayOn : Bool := TRUE;   // ON-delay time (at Power ON): Default: true, false: disabled, true: enabled
+      delayOn0 : Bool;   // False
+      delayReset : Bool := TRUE;   // ON-delay time (at manual reset): Default: true, false: disabled, true: enabled
+      delayReset0 : Bool;   // False
+      delayRestart : Bool;   // ON-delay time (at restart): Default: true, false: disabled, true: enabled
+      delayRestart0 : Bool;   // False
+      reserved4 : Bool;   // Reserved
+      reserved5 : Bool;   // Reserved
+      delayTime : Int;   // ON-delay time: Resolution: 0.1=1s, Default: 0s, Min: 0.1s or 0s (disabled), Max: 999.9s
+      delayTimeCosPhiTripUp : Int;   // Tripping delay time (in the case of overshoot of the cos phi value): Resolution: 0.1s=1, Default: 0, Min: 0.1s or 0s, Max: 999.9s
+      delayTimeCosPhiTripDown : Int;   // Tripping delay time (in the case of undershoot of the cos phi value): Resolution: 0.1s=1, Default: 0, Min: 0.1s or 0s, Max: 999.9s
+      delayTimeCurrentTripUp : Int;   // Tripping delay time (in the case of active current overshoot): Resolution: 0.1s=1, Default: 0, Min: 0.1s or 0s, Max: 999.9s
+      delayTimeCurrentTripDown : Int;   // Tripping delay time (in the case of active current undershoot): Resolution: 0.1s=1, Default: 0, Min: 0.1s or 0s, Max: 999.9s
+      tresholdCosPhiUp : Byte := BYTE#16#32;   // Threshold for overshoot of the cos phi value: Resolution: 0.01=1, Default: 0.5, Min: 0.01 or 0 (disabled), Max: 0.99
+      tresholdCosPhiDown : Byte := BYTE#16#14;   // Threshold for undershoot of the cos phi value: Resolution: 0.01=1, Default: 0.2, Min: 0.01 or 0 (disabled), Max: 0.99
+      tresholdCurrentUp : DInt := 30;   // Threshold for overshoot of the active current value: Resolution: 0.1A=1, Default: 3A, Min: 0.2A or 0A (disabled), Max: 10A
+      tresholdCurrentDown : DInt := 10;   // Threshold for undershoot of the active current value: Resolution: 0.1A=1, Default: 1A, Min: 0.2A or 0A (disabled), Max: 10A
+      warningTresholdCosPhiUp : Byte := BYTE#16#32;   // Warning threshold for overshoot: Resolution: 0.01A=1, Default: 2.5A, Min: 0.05A or 0A (disabled), Max: 10A
+      warningTresholdCosPhiDown : Byte := BYTE#16#14;   // Warning threshold for undershoot: Resolution: 0.01A=1, Default: 1.5A, Min: 0.05A or 0A (disabled), Max: 10A
+      warningTresholdCurrentUp : DInt := 30;   // Warning threshold for overshoot of the active current value: Resolution: 0.1A=1, Default: 3A, Min: 0.2A or 0A (disabled), Max: 10A
+      warningTresholdCurrentDown : DInt := 10;   // Warning threshold for undershoot of the active current value: Resolution: 0.1A=1, Default: 1A, Min: 0.2A or 0A (disabled), Max: 10A
+      reserved6 : Array[56..65] of Byte;   // Reserved
+      hysteresisCosPhi : Byte := BYTE#16#0A;   // Hysteresis (cos phi): Resolution: 0.01=1, Default: 0.1, Min: 0.1 or 0 (disabled), Max: 0.2
+      reserved7 : Byte;   // Reserved
+      hysteresisCurrent : DInt := 5;   // Hysteresis (active current): Resolution: 0.1A=1, Default: 0,5A, Min: 0.1A or 0A (disabled), Max: 3A
+      responseRelay : Byte;   // Relay switching response: Default: 16#00, 16#00: Closed-circuit principle NC, 16#01: Open-circuit principle NO
+      reserved8 : Byte;   // Reserved
+   END_STRUCT;
+
+END_TYPE
+
+TYPE
+  LIOLink_3UG4841_typeAll : STRUCT
+  /// LIOLink_3UG4841_typeAll
+//Contains all the information about 3UG4841
+      parameterPage0 : LIOLink_typeParameterPage0;   // ID0: Parameter page 0
+      systemCommands : Byte;   // ID2: System Commands (0x80 for device reset, 0x82 for factory reset)
+      vendorName : String[11];   // ID16: Vendor name
+      vendorText : String[64];   // ID17: Vendor text
+      productName : String[64];   // ID18: Product name
+      productID : String[14];   // ID19: Product ID
+      hwRevision : String[7];   // ID22: Hardware revision
+      fwRevision : String[7];   // ID23: Firmware revision
+      appSpecificName : String[32];   // ID24: Application specific name
+      diagnostics : LIOLink_3UG4841_typeDiag;   // ID92: Diagnostics
+      measuredValues : LIOLink_3UG4841_typeMeasure;   // ID94: Measurement values
+      parameters : LIOLink_3UG4841_typeParam;   // ID131: Parameters
+   END_STRUCT;
+
+END_TYPE
+
+
+END_NAMESPACE

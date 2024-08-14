@@ -1,0 +1,2061 @@
+NAMESPACE Simatic.Ax.IOLink
+FUNCTION_BLOCK LIOLink_3UG481x
+  /// LIOLink_3UG481x
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG481x to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG481_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 59;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 29;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 37;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 30;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 38;   // Record Length
+      LENGTH_PARAMETERS : Int := 60;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG481x
+	    // Function:         Capsule block to communicate with 3UG481x devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LIOLink_3UG4822
+  /// LIOLink_3UG4822
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG4822 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG4822_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 63;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 27;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 51;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 28;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 52;   // Record Length
+      LENGTH_PARAMETERS : Int := 64;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG4822
+	    // Function:         Capsule block to communicate with 3UG4822 devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LIOLink_3UG4825
+  /// LIOLink_3UG4825
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG4825 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG4825_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 47;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 29;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 21;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 30;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 22;   // Record Length
+      LENGTH_PARAMETERS : Int := 48;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG4825
+	    // Function:         Capsule block to communicate with 3UG4825 devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LIOLink_3UG4832
+  /// LIOLink_3UG4832
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG4832 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG4832_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 47;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 27;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 27;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 28;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 28;   // Record Length
+      LENGTH_PARAMETERS : Int := 48;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG4832
+	    // Function:         Capsule block to communicate with 3UG4832 devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LIOLink_3UG4841
+  /// LIOLink_3UG4841
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG4841 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG4841_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 73;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 29;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 49;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 30;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 50;   // Record Length
+      LENGTH_PARAMETERS : Int := 74;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG4841
+	    // Function:         Capsule block to communicate with 3UG4841 devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LIOLink_3UG4851
+  /// LIOLink_3UG4851
+  // Author : SIOS
+  // Family : LIOLink
+  // Version : 3.1
+//IO-Link Device FB for SIRIUS 3UG4851 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request to execute function
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // FALSE: read, TRUE: write
+      port : Int;   // Port of the IO-Link Master for the Device
+      pollingPeriod : Time := T#100MS;   // Time period of polling
+      parameterPage0 : Bool;   // Read access on parameter page 0
+      systemCommands : Bool;   // Write system commands
+      vendorName : Bool;   // Read vendor name
+      vendorText : Bool;   // Read vendor text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      diagnosis : Bool;   // Read diagnostics
+      measurements : Bool;   // Read measurements
+      parameters : Bool;   // Read/Write parameters
+   END_VAR
+
+   VAR_OUTPUT 
+      done : Bool;   // TRUE: Commanded functionality has been completed successfully
+      busy : Bool;   // TRUE: FB is not finished and new output values can be expected
+      error : Bool;   // TRUE: An error occurred during the execution of the FB
+      status : Word;   // 16#0000 - 16#7FFF: Status of the FB, 16#8000 - 16#FFFF: Error identification
+      diagnostics : LIOLink_typeDiagnostics;   // Diagnostics information of LIOLink_Device
+   END_VAR
+
+   VAR_IN_OUT 
+      data : LIOLink_3UG4851_typeAll;   // Data area, device specific (Data Type)
+   END_VAR
+
+   VAR 
+      instDevice : LIOLink_Device;
+      statRecord : Array[0..UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex : Int;   // Requested index
+      statSubindex : Int;   // Requested subindex
+      statRecordLen : Int;   // Length of record to be written
+      statHwID : HW_IO;   // Static value for input 'hwID'
+      statCap : Int;   // Static value for input 'cap'
+      statReadWrite : Bool;   // Static value for input 'readWrite'
+      statPort : Int;   // Static value for input 'port'
+      statPollingPeriod : Time := T#100MS;   // Static value for input 'pollingPeriod'
+      statParameterPage0 : Bool;   // Static value for input 'parameterPage0'
+      statSystemCommands : Bool;   // Static value for input 'systemCommands'
+      statVendorName : Bool;   // Static value for input 'vendorName'
+      statVendorText : Bool;   // Static value for input 'vendorText'
+      statProductName : Bool;   // Static value for input 'productName'
+      statProductID : Bool;   // Static value for input 'productID'
+      statHwRevision : Bool;   // Static value for input 'hwRevision'
+      statFwRevision : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName : Bool;   // Static value for input 'appSpecificName'
+      statDiagnosis : Bool;   // Static value for input 'diagnosis'
+      statMeasurements : Bool;   // Static value for input 'measurements'
+      statParameters : Bool;   // Static value for input 'parameters'
+      statRequest : Int;   // Case of request (data set)
+      statDoneOld : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : Int;   // Loop index
+      tempLen : UInt;   // Record length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS Output
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameters : Array[0..UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameter record conversion
+      tempFieldParameterPage0 : Array[0..UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter page 0 record conversion
+      tempFieldDiagnostics : Array[0..UPPER_BOUND_DIAGNOSTICS] of Byte;   // Auxiliary tag for Diagnostics record conversion
+      tempFieldMeasurements : Array[0..UPPER_BOUND_MEASUREMENTS] of Byte;   // Auxiliary tag for Measurement record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETERS : Int := 47;   // Upper Bound of Parameter auxiliary field
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_DIAGNOSTICS : Int := 29;   // Upper Bound of Diagnostics auxiliary field
+      UPPER_BOUND_MEASUREMENTS : Int := 17;   // Upper Bound of Measurements auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := WORD#16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := WORD#16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := WORD#16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM0 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMANDS : Int := 2;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_DIAGNOSTICS : Int := 92;   // Record Index
+      INDEX_MEASUREMENTS : Int := 94;   // Record Index
+      INDEX_PARAMETERS : Int := 131;   // Record Index
+      LENGTH_DIRECT_PARAM0 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMANDS : Int := 1;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 11;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 64;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 64;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 14;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 7;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_DIAGNOSTICS : Int := 30;   // Record Length
+      LENGTH_MEASUREMENTS : Int := 18;   // Record Length
+      LENGTH_PARAMETERS : Int := 48;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty char to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+	// REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_3UG4851
+	    // Function:         Capsule block to communicate with 3UG4851 devices
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------     
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 01.01.00 | 12.09.2014 | Online Support         | Bugfixing write case 28 (data set 131)
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Upgraded FB "IO_LINK_DEVICE to V3.1.0
+	    // 03.00.00 | 22.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 07.10.2022 | SUP SPH                | Optimization 
+	    //===============================================================================
+	// END_REGION
+	
+	// REGION INIT
+	    IF (execute = TRUE AND instDevice.status = STATUS_IDLE) THEN
+	        
+	        // REGION Inputs 
+	            //save inputs
+	            statHwID := hwID;
+	            statCap := cap;
+	            statReadWrite := readWrite;
+	            statPort := port;
+	            statPollingPeriod := pollingPeriod;
+	            statParameterPage0 := parameterPage0;
+	            statSystemCommands := systemCommands;
+	            statVendorName := vendorName;
+	            statVendorText := vendorText;
+	            statProductName := productName;
+	            statProductID := productID;
+	            statHwRevision := hwRevision;
+	            statFwRevision := fwRevision;
+	            statAppSpecificName := appSpecificName;
+	            statDiagnosis := diagnosis;
+	            statMeasurements := measurements;
+	            statParameters := parameters;
+	        // END_REGION
+	        
+	        // REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF statParameterPage0 THEN
+	                statIndex := INDEX_DIRECT_PARAM0;
+	                statRecordLen := LENGTH_DIRECT_PARAM0;
+	            ELSIF statSystemCommands THEN
+	                statIndex := INDEX_SYSTEM_COMMANDS;
+	                statRecordLen := LENGTH_SYSTEM_COMMANDS;
+	            ELSIF statVendorName THEN
+	                statIndex := INDEX_VENDOR_NAME;
+	                statRecordLen := LENGTH_VENDOR_NAME;
+	            ELSIF statVendorText THEN
+	                statIndex := INDEX_VENDOR_TEXT;
+	                statRecordLen := LENGTH_VENDOR_TEXT;
+	            ELSIF statProductName THEN
+	                statIndex := INDEX_PRODUCT_NAME;
+	                statRecordLen := LENGTH_PRODUCT_NAME;
+	            ELSIF statProductID THEN
+	                statIndex := INDEX_PRODUCT_ID;
+	                statRecordLen := LENGTH_PRODUCT_ID;
+	            ELSIF statHwRevision THEN
+	                statIndex := INDEX_HARDWARE_REVISION;
+	                statRecordLen := LENGTH_HARDWARE_REVISION;
+	            ELSIF statFwRevision THEN
+	                statIndex := INDEX_FIRMWARE_REVISION;
+	                statRecordLen := LENGTH_FIRMWARE_REVISION;
+	            ELSIF statAppSpecificName THEN
+	                statIndex := INDEX_APP_SPECIFIC_NAME;
+	                statRecordLen := LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF statDiagnosis THEN
+	                statIndex := INDEX_DIAGNOSTICS;
+	                statRecordLen := LENGTH_DIAGNOSTICS;
+	            ELSIF statMeasurements THEN
+	                statIndex := INDEX_MEASUREMENTS;
+	                statRecordLen := LENGTH_MEASUREMENTS;
+	            ELSIF statParameters THEN
+	                statIndex := INDEX_PARAMETERS;
+	                statRecordLen := LENGTH_PARAMETERS;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        // END_REGION
+	        
+	        IF statReadWrite = MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            // REGION write
+	                IF statSystemCommands THEN
+	                    statRecord[0] := data.systemCommands;
+	                    
+	                ELSIF statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => tempLen,
+	                                  Chars := statRecord);
+	                    
+	                    // Fill remaining characters with null
+	                    FOR tempIndex := TO_INT(tempLen) TO statRecordLen - 1 DO
+	                        statRecord[tempIndex] := TO_BYTE(EMPTY_CHAR);
+	                    END_FOR;
+	                    
+	                ELSIF statParameters THEN
+	                    tempRetValSerialize := Serialize(SRC_VARIABLE := data.parameters, DEST_ARRAY => tempFieldParameters, POS := tempPosSerialize);
+	                    UMOVE_BLK(IN := tempFieldParameters[0],
+	                              COUNT := TO_ULINT(statRecordLen),
+	                              OUT => statRecord[0]);
+	                ELSE    // all other data set are read only
+	                    ;
+	                END_IF;
+	                tempInternalError := tempRetValSerialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	            // END_REGION
+	            
+	        END_IF;
+	    END_IF;
+	// END_REGION
+	
+	// REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    instDevice(execute := execute,
+	                hwID := statHwID,
+	                cap := statCap,
+	                readWrite := statReadWrite,
+	                port := statPort,
+	                pollingPeriod := statPollingPeriod,
+	                index := statIndex,
+	                subindex := statSubindex,
+	                writeLen := statRecordLen,
+	                timeout := DEVICE_TIMEOUT,
+	                record := statRecord);
+	// END_REGION
+	
+	// REGION READ
+	    // Copy data if available and valid
+	    IF instDevice.done = TRUE AND statDoneOld = FALSE AND statReadWrite = MODE_READ THEN
+	        IF statParameterPage0 THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameterPage0[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameterPage0, DEST_VARIABLE => data.parameterPage0, POS := tempPosDeserialize);
+	        ELSIF statVendorName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorName);
+	        ELSIF statVendorText THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.vendorText);
+	        ELSIF statProductName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productName);
+	        ELSIF statProductID THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.productID);
+	        ELSIF statHwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.hwRevision);
+	        ELSIF statFwRevision THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.fwRevision);
+	        ELSIF statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := statRecord,
+	                          pChars := 0,
+	                          Cnt := TO_UINT(statRecordLen),
+	                          Strg => data.appSpecificName);
+	        ELSIF statDiagnosis THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldDiagnostics[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldDiagnostics, DEST_VARIABLE => data.diagnostics, POS := tempPosDeserialize);
+	        ELSIF statMeasurements THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldMeasurements[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldMeasurements, DEST_VARIABLE => data.measuredValues, POS := tempPosDeserialize);
+	        ELSIF statParameters THEN
+	            UMOVE_BLK(IN := statRecord[0],
+	                      COUNT := TO_ULINT(statRecordLen),
+	                      OUT => tempFieldParameters[0]);
+	            tempRetValDeserialize := Deserialize(SRC_ARRAY := tempFieldParameters, DEST_VARIABLE => data.parameters, POS := tempPosDeserialize);
+	        ELSE  // Other data sets are not defined
+	            ;
+	        END_IF;
+	        tempInternalError := tempRetValDeserialize <> TO_INT(STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    statDoneOld := instDevice.done;
+	// END_REGION
+	
+	// REGION OUTPUTS
+	    IF tempInternalError THEN //Error occured
+	        done := false;
+	        busy := false;
+	        error := true;
+	        status := ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        done := instDevice.done;
+	        busy := instDevice.busy;
+	        error := instDevice.error;
+	        status := instDevice.status;
+	        diagnostics := instDevice.diagnostics;
+	    END_IF;
+	// END_REGION
+	
+END_FUNCTION_BLOCK
+
+
+END_NAMESPACE
