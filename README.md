@@ -2,7 +2,11 @@
 
 ## Description
 
-*please insert a description of the library*
+This library is used to control IO-Link devices that are connected to a SIMATIC S7-1500 PLC. It also backs up and restores the configuration of devices and the Siemens IO-Link master. Additionally, it reads diagnostic data from devices.
+
+It is based on the IO-Link library for the S7-1500 PLC in the TIA Portal context. You can find the original library here:
+
+[https://support.industry.siemens.com/cs/document/82981502/](https://support.industry.siemens.com/cs/document/82981502/library-for-io-link-(liolink)?dti=0&lc=en-WW)
 
 ## Getting started
 
