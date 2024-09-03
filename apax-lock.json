@@ -1,13 +1,16 @@
 {
-  "name": "@simatic-ax/iolink",
+  "name": "iolink",
   "version": "0.0.0-placeholder",
   "lockFileVersion": "2",
   "installStrategy": "strict",
   "root": {
-    "name": "@simatic-ax/iolink",
+    "name": "iolink",
     "version": "0.0.0-placeholder",
     "dependencies": {
-      "@ax/system": "7.0.17"
+      "@ax/system-timer": "^7.0.17",
+      "@ax/simatic-1500-distributedio": "^7.0.1",
+      "@simatic-ax/conversion": "^2405.0.0",
+      "@ax/system-serde": "^7.0.17"
     },
     "devDependencies": {
       "@ax/sdk": "2405.0.0",
@@ -49,20 +52,37 @@
       "resolved": "https://npm.pkg.github.com/download/@simatic-ax/snippetscollection/1.0.0/60302d7e0da15a914ce0126503398063a42e1917",
       "dependencies": {}
     },
-    "@ax/system": {
-      "name": "@ax/system",
+    "@ax/system-timer": {
+      "name": "@ax/system-timer",
       "version": "7.0.17",
-      "integrity": "sha512-taIkxW0qQeLrTGK4xsPsGMNeBHniK+CCOct7LqvdGrfU8kp1q+5vGdhAL4YNylAjehx7rcKi1D2Pg3kxYoax5Q==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system/-/system-7.0.17.tgz",
+      "integrity": "sha512-JC2qA1x0C1loDgzyTO3T3GxT5a7VjXWhRMBovIhoTwbXmY/hs1nD28DvpIPCU1hNz6vxCV0s/BDw+ZwkZXx6hA==",
+      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-timer/-/system-timer-7.0.17.tgz",
+      "dependencies": {}
+    },
+    "@ax/simatic-1500-distributedio": {
+      "name": "@ax/simatic-1500-distributedio",
+      "version": "7.0.1",
+      "integrity": "sha512-bhoaxLiOmox+oyD2JBiHGS5voYt+AxJmf0u3qlaSbbYN7O2LAAA0xYb/ijxGD8MT/qloFOVt/nxkSEFx1WdXnw==",
+      "resolved": "https://registry.simatic-ax.siemens.io/@ax/simatic-1500-distributedio/-/simatic-1500-distributedio-7.0.1.tgz",
+      "dependencies": {}
+    },
+    "@simatic-ax/conversion": {
+      "name": "@simatic-ax/conversion",
+      "version": "2405.0.0",
+      "integrity": "sha512-MWxnr3s9cClqEVIWT/TzF3fUlqopo4y+VOTjFt3Hn8X2o+SxUk+HmHRkN2GCVbop5Zl3bfrM0/2r/ZrT0mZqmA==",
+      "resolved": "https://npm.pkg.github.com/download/@simatic-ax/conversion/2405.0.0/371df9790440d92df239f066adda57f8fd9bdfd1",
       "dependencies": {
-        "@ax/system-bitaccess": "7.0.17",
-        "@ax/system-counters": "7.0.17",
-        "@ax/system-datetime": "7.0.17",
         "@ax/system-math": "7.0.17",
-        "@ax/system-selection": "7.0.17",
-        "@ax/system-edgedetection": "7.0.17",
-        "@ax/system-strings": "7.0.17",
-        "@ax/system-timer": "7.0.17"
+        "@ax/system-strings": "7.0.17"
+      }
+    },
+    "@ax/system-serde": {
+      "name": "@ax/system-serde",
+      "version": "7.0.17",
+      "integrity": "sha512-8ZDIaqoqHiJLWP6yHidNgF9iShqpj4DiRDPFT8zDjvAyAJqAn9SQvDlMuFo4Vzn8XKe3YM48s4ReJYQUOwcYGw==",
+      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-serde/-/system-serde-7.0.17.tgz",
+      "dependencies": {
+        "@ax/system-strings": "7.0.17"
       }
     },
     "@ax/apax-build": {
@@ -251,46 +271,11 @@
         "@ax/trace-linux-x64": "2.7.2"
       }
     },
-    "@ax/system-bitaccess": {
-      "name": "@ax/system-bitaccess",
-      "version": "7.0.17",
-      "integrity": "sha512-Lif2milO1quNldrD1m4cK5JSDXeoS/P5ZvbVvh7JGx0wSylsu5XRi/lr1kzygRhzLt5sphfIaeCfdiSuHUPO3w==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-bitaccess/-/system-bitaccess-7.0.17.tgz",
-      "dependencies": {}
-    },
-    "@ax/system-counters": {
-      "name": "@ax/system-counters",
-      "version": "7.0.17",
-      "integrity": "sha512-FuJ8rspzJw4+icqWwADCt9aLdylq4rWWVaZhbp7HWZzTzcY+jJnlxGibRUntaxAUKMxDBevUF22LEoFEcPPSyQ==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-counters/-/system-counters-7.0.17.tgz",
-      "dependencies": {}
-    },
-    "@ax/system-datetime": {
-      "name": "@ax/system-datetime",
-      "version": "7.0.17",
-      "integrity": "sha512-mgB6+Ln5eLXsGJb4nl6/sW7SwAipSrFvttMWGAJMOym3qx7F1MuAdcZ6NaRS0rV0mpyyTEzgG3sk2voMN1OK1Q==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-datetime/-/system-datetime-7.0.17.tgz",
-      "dependencies": {}
-    },
     "@ax/system-math": {
       "name": "@ax/system-math",
       "version": "7.0.17",
       "integrity": "sha512-nHwRWg5Skzq3dgV29XVa7wni0ZQkn/ff6csYxrS7IsNKGb2nKOAJQFb/WzrfcxbsTYhTPOyifI6ulDgMu50Y6w==",
       "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-math/-/system-math-7.0.17.tgz",
-      "dependencies": {}
-    },
-    "@ax/system-selection": {
-      "name": "@ax/system-selection",
-      "version": "7.0.17",
-      "integrity": "sha512-QD7pCKp41WOcevCKMpyuBAUHGSPGx9FoW0eA/0+9htNGD7OlbvCtaQVDnWV97lBYGABu5tJZ6lkmus0D9z+/og==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-selection/-/system-selection-7.0.17.tgz",
-      "dependencies": {}
-    },
-    "@ax/system-edgedetection": {
-      "name": "@ax/system-edgedetection",
-      "version": "7.0.17",
-      "integrity": "sha512-LPDVQzi/jOiQ/XB04TYcGpEuQQV8dQkUt3ckCn2kdbzVnRxJMUe1LIw3DwZq12wUTsSFKhA3XDTRqsAp9fvRXg==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-edgedetection/-/system-edgedetection-7.0.17.tgz",
       "dependencies": {}
     },
     "@ax/system-strings": {
@@ -302,13 +287,6 @@
         "@ax/system-math": "7.0.17",
         "@ax/system-datetime": "7.0.17"
       }
-    },
-    "@ax/system-timer": {
-      "name": "@ax/system-timer",
-      "version": "7.0.17",
-      "integrity": "sha512-JC2qA1x0C1loDgzyTO3T3GxT5a7VjXWhRMBovIhoTwbXmY/hs1nD28DvpIPCU1hNz6vxCV0s/BDw+ZwkZXx6hA==",
-      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-timer/-/system-timer-7.0.17.tgz",
-      "dependencies": {}
     },
     "@ax/simatic-package-tool": {
       "name": "@ax/simatic-package-tool",
@@ -700,6 +678,13 @@
       "cpu": [
         "x64"
       ],
+      "dependencies": {}
+    },
+    "@ax/system-datetime": {
+      "name": "@ax/system-datetime",
+      "version": "7.0.17",
+      "integrity": "sha512-mgB6+Ln5eLXsGJb4nl6/sW7SwAipSrFvttMWGAJMOym3qx7F1MuAdcZ6NaRS0rV0mpyyTEzgG3sk2voMN1OK1Q==",
+      "resolved": "https://registry.simatic-ax.siemens.io/@ax/system-datetime/-/system-datetime-7.0.17.tgz",
       "dependencies": {}
     },
     "@ax/axunitst-test-director-linux-x64": {

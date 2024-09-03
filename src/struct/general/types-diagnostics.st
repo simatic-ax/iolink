@@ -34,7 +34,7 @@ TYPE
   LIOLink_typePortEvents : STRUCT
   /// LIOLink_PortEvents
 //Events of a port
-      event : Array[0..4] of LIOLink_typePortEventCodes;   // Events of a port
+      event : Array[0..Lengths#PORT_EVENT_CODES - 1] of LIOLink_typePortEventCodes;   // Events of a port
    END_STRUCT;
 
 END_TYPE
@@ -43,7 +43,7 @@ TYPE
   LIOLink_typeEvents : STRUCT
   /// LIOLink_Events
 //Events of each port of a IO-Link-Master
-      port : Array[1..8] of LIOLink_typePortEvents;   // Ports of IO-Link-Master
+      port : Array[1..Lengths#PORT_EVENTS] of LIOLink_typePortEvents;   // Ports of IO-Link-Master
    END_STRUCT;
 
 END_TYPE

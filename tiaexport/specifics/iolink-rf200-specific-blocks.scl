@@ -1,0 +1,1408 @@
+﻿FUNCTION_BLOCK "LIOLink_RF200"
+TITLE = LIOLink_RF200
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SIOS
+FAMILY : LIOLink
+VERSION : 3.0
+//IO-Link Device FB for SIMATIC RF200 to use with S7-1200/1500 controllers!
+   VAR_INPUT 
+      execute : Bool;   // Request job (on rising edge)
+      hwID : HW_IO;   // Hardware identifier of IO-Link master module or first sub module
+      cap { S7_HiddenAssignment := 'Hide'; S7_PredefinedAssignment := '0'; S7_ShowAssignmentIfParamsNotIdentical := 'true'} : Int;   // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+      readWrite : Bool;   // Read and write access to IO-Link device 0: Read, 1:Write
+      port : Int;   // Port of device on the IO-Link Master
+      pollingPeriod { S7_HiddenAssignment := 'Hide'; S7_PredefinedAssignment := 'T#100ms'; S7_ShowAssignmentIfParamsNotIdentical := 'true'} : Time := T#100MS;   // Time period of polling
+      directParameter1 : Bool;   // Read parameter page 1
+      systemCommand : Bool;   // Read system commands
+      deviceAccessLocks : Bool;   // Read device access locks
+      vendorName : Bool;   // Read manufacturer name
+      vendorText : Bool;   // Read manufacturer text
+      productName : Bool;   // Read product name
+      productID : Bool;   // Read product ID
+      productText : Bool;   // Read product text
+      serialNumber : Bool;   // Read serial number
+      hwRevision : Bool;   // Read hardware revision
+      fwRevision : Bool;   // Read firmware revision
+      appSpecificName : Bool;   // Read/Write application specific name
+      errorCount : Bool;   // Read error count
+      deviceStatus : Bool;   // Read device status
+      deviceStatusDetailed : Bool;   // Read device status detailed
+      processIn : Bool;   // Read process data IN
+      processOut : Bool;   // Read process data OUT
+      parameters : Bool;   // Read parameters
+      eventHistory : Bool;   // Read event history
+      readerStatus : Bool;   // Read status of reader
+      tagStatus : Bool;   // Reag tag status
+      uidHistory : Bool;   // Read UID history
+   END_VAR
+
+   VAR_OUTPUT 
+      done { ExternalWritable := 'False'} : Bool;   // 0: data invalid, 1: data valid
+      busy { ExternalWritable := 'False'} : Bool;   // 0: job done, 1: job in progress
+      error { ExternalWritable := 'False'} : Bool;   // 0: no error, 1: error
+      status { ExternalWritable := 'False'} : Word;   // DP/PN IO error status
+      diagnostics { ExternalWritable := 'False'} : "LIOLink_typeDiagnostics";   // IO-Link error status
+   END_VAR
+
+   VAR_IN_OUT 
+      data : "LIOLink_RF200_typeAll";   // Device data buffer
+   END_VAR
+
+   VAR 
+      instDevice { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_Device";
+      statRecordParam { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Struct   // Data set parameters
+         index { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#HIGHEST_REQUEST_NUMBER] of Int := [0, #INDEX_DIRECT_PARAM1, 7(0), #INDEX_EVENT_HISTORY, #INDEX_VENDOR_NAME, #INDEX_VENDOR_TEXT, #INDEX_PRODUCT_NAME, #INDEX_PRODUCT_ID, 20, 21, 22, #INDEX_FIRMWARE_REVISION, #INDEX_APP_SPECIFIC_NAME, #INDEX_ERROR_COUNT, 2(0), #INDEX_TAG_STATUS, #INDEX_READER_STATUS, #INDEX_UID_HISTORY, 4(0)];   // Data set index
+         subindex { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#HIGHEST_REQUEST_NUMBER] of Int;   // Data set subindex
+         length { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#HIGHEST_REQUEST_NUMBER] of Int := [0, #LENGTH_DIRECT_PARAM1, 7(0), #LENGTH_EVENT_HISTORY, #LENGTH_VENDOR_NAME, #LENGTH_VENDOR_TEXT, #LENGTH_PRODUCT_NAME, #LENGTH_PRODUCT_ID, 3(0), #LENGTH_FIRMWARE_REVISION, #LENGTH_APP_SPECIFIC_NAME, #LENGTH_ERROR_COUNT, 2(0), #LENGTH_TAG_STATUS, #LENGTH_READER_STATUS, #LENGTH_UID_HISTORY, 4(0)];   // Data set length
+      END_STRUCT;
+      statRecord { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_RECORD] of Byte;   // Record buffer
+      statIndex { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Requested index
+      statSubindex { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Requested subindex
+      statRecordLen { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Length of record to be written
+      statHwID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_IO;   // Static value for input 'hwID'
+      statCap { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Static value for input 'cap'
+      statReadWrite { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'readWrite'
+      statPort { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Static value for input 'port'
+      statPollingPeriod { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // Static value for input 'pollingPeriod'
+      statDirectParameter1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'directParameter1'
+      statSystemCommand { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'systemCommands'
+      statDeviceAccessLocks { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'deviceAccessLocks'
+      statVendorName { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'vendorName'
+      statVendorText { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'vendorText'
+      statProductName { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'productName'
+      statProductID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'productID'
+      statProductText { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'productText'
+      statSerialNumber { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'serialNumber'
+      statHwRevision { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'hwRevision'
+      statFwRevision { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'fwRevision'
+      statAppSpecificName { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'appSpecificName'
+      statErrorCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'errorCount'
+      statDeviceStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'deviceStatus'
+      statDeviceStatusDetailed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'deviceStatusDetailed'
+      statProcessIn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'processIn'
+      statProcessOut { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'processOut'
+      statParameters { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'parameters'
+      statEventHistory { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'eventHistory'
+      statReaderStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'readerStatus'
+      statTagStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'tagStatus'
+      statUidHistory { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Static value for input 'uidHistory'
+      statRequest { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Case of request (data set)
+      statDoneOld { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Last cycle's value of instDevice.done
+   END_VAR
+
+   VAR_TEMP 
+      tempIndex : UInt;   // Loop index
+      tempLen : UInt;   // Auxiliary tag Length
+      tempRetValSerialize : Int;   // Auxiliary tag for Serialize RetVal
+      tempRetValDeserialize : Int;   // Auxiliary tag for Deserialize RetVal
+      tempPosSerialize : DInt;   // Auxiliary tag for Serialize POS
+      tempPosDeserialize : DInt;   // Auxiliary tag for Deserialize POS Output
+      tempFieldParameterPage0 : Array[0..#UPPER_BOUND_PARAMETER_PAGE0] of Byte;   // Auxiliary tag for Parameter Page 0 record conversion
+      tempFieldParameters : Array[0..#UPPER_BOUND_PARAMETERS] of Byte;   // Auxiliary tag for Parameters record conversion
+      tempFieldEventHistory : Array[0..#UPPER_BOUND_EVENT_HISTORY] of Byte;   // Auxiliary tag for EventHistory record conversion
+      tempFieldReaderStatus : Array[0..#UPPER_BOUND_READER_STATUS] of Byte;   // Auxiliary tag for Reader Status record conversion
+      tempFieldTagStatus : Array[0..#UPPER_BOUND_TAG_STATUS] of Byte;   // Auxiliary tag for Tag Status record conversion
+      tempFieldUIDHistory : Array[0..#UPPER_BOUND_UID_HISTORY] of Byte;   // Auxiliary tag for UID History record conversion
+      tempInternalError : Bool;   // Auxiliary tag to collect serialize and Deserialize issues
+   END_VAR
+
+   VAR CONSTANT 
+      UPPER_BOUND_RECORD : Int := 231;   // Upper Bound of record buffer
+      HIGHEST_REQUEST_NUMBER : Int := 28;   // Highest available request number
+      UPPER_BOUND_PARAMETER_PAGE0 : Int := 15;   // Upper Bound of Parameter Page 0 auxiliary field
+      UPPER_BOUND_PARAMETERS : Int := 7;   // Upper Bound of Parameters auxiliary field
+      UPPER_BOUND_EVENT_HISTORY : Int := 19;   // Upper Bound of Event History auxiliary field
+      UPPER_BOUND_READER_STATUS : Int := 17;   // Upper Bound of Reader Status auxiliary field
+      UPPER_BOUND_TAG_STATUS : Int := 15;   // Upper Bound of Tag Status auxiliary field
+      UPPER_BOUND_UID_HISTORY : Int := 39;   // Upper Bound of UID History auxiliary field
+      MODE_READ : Bool := FALSE;   // Mode to read data
+      MODE_WRITE : Bool := TRUE;   // Mode to write data
+      STATUS_IDLE : Word := 16#7000;   // Status: Idle
+      STATUS_EXECUTION_FINISHED : Word := 16#0000;   // Execution finished without errors
+      ERR_INCONSISTENT_DATA : Word := 16#8402;   // Error: Read data record doesn't match request
+      INDEX_DIRECT_PARAM1 : Int := 0;   // Record Index
+      INDEX_SYSTEM_COMMAND : Int := 2;   // Record Index
+      INDEX_ACCESS_LOCKS : Int := 12;   // Record Index
+      INDEX_EVENT_HISTORY : Int := 74;   // Record Index
+      INDEX_VENDOR_NAME : Int := 16;   // Record Index
+      INDEX_VENDOR_TEXT : Int := 17;   // Record Index
+      INDEX_PRODUCT_NAME : Int := 18;   // Record Index
+      INDEX_PRODUCT_ID : Int := 19;   // Record Index
+      INDEX_PRODUCT_TEXT : Int := 20;   // Record Index
+      INDEX_SERIAL_NUMBER : Int := 21;   // Record Index
+      INDEX_HARDWARE_REVISION : Int := 22;   // Record Index
+      INDEX_FIRMWARE_REVISION : Int := 23;   // Record Index
+      INDEX_APP_SPECIFIC_NAME : Int := 24;   // Record Index
+      INDEX_ERROR_COUNT : Int := 32;   // Record Index
+      INDEX_DEVICE_STATUS : Int := 36;   // Record Index
+      INDEX_DETAILED_STATUS : Int := 37;   // Record Index
+      INDEX_PII : Int := 40;   // Record Index
+      INDEX_PIQ : Int := 41;   // Record Index
+      INDEX_PARAMETERS : Int := 64;   // Record Index
+      INDEX_TAG_STATUS : Int := 91;   // Record Index
+      INDEX_READER_STATUS : Int := 90;   // Record Index
+      INDEX_UID_HISTORY : Int := 92;   // Record Index
+      LENGTH_DIRECT_PARAM1 : Int := 16;   // Record Length
+      LENGTH_SYSTEM_COMMAND : Int := 1;   // Record Length
+      LENGTH_ACCESS_LOCKS : Int := 2;   // Record Length
+      LENGTH_EVENT_HISTORY : Int := 20;   // Record Length
+      LENGTH_VENDOR_NAME : Int := 12;   // Record Length
+      LENGTH_VENDOR_TEXT : Int := 12;   // Record Length
+      LENGTH_PRODUCT_NAME : Int := 24;   // Record Length
+      LENGTH_PRODUCT_ID : Int := 16;   // Record Length
+      LENGTH_PRODUCT_TEXT : Int := 64;   // Record Length
+      LENGTH_SERIAL_NUMBER : Int := 12;   // Record Length
+      LENGTH_HARDWARE_REVISION : Int := 12;   // Record Length
+      LENGTH_FIRMWARE_REVISION : Int := 12;   // Record Length
+      LENGTH_APP_SPECIFIC_NAME : Int := 32;   // Record Length
+      LENGTH_ERROR_COUNT : Int := 2;   // Record Length
+      LENGTH_DEVICE_STATUS : Int := 1;   // Record Length
+      LENGTH_DETAILED_STATUS : Int := 1;   // Record Length
+      LENGTH_PII : Int := 8;   // Record Length
+      LENGTH_PIQ : Int := 8;   // Record Length
+      LENGTH_PARAMETERS : Int := 8;   // Record Length
+      LENGTH_TAG_STATUS : Int := 15;   // Record Length
+      LENGTH_READER_STATUS : Int := 18;   // Record Length
+      LENGTH_UID_HISTORY : Int := 40;   // Record Length
+      EMPTY_CHAR : Char := '$00';   // Default empty chat to fill empty field entries
+      DEVICE_TIMEOUT : Time := T#20S;   // Timeout value for the IO-Link Device Instance
+   END_VAR
+
+
+BEGIN
+	REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2023
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_RF200
+	    // Function:         Capsule block to communicate with SIMATIC RF200 Readers
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------
+	    // Change log table:
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 11.04.2014 | Online Support         | First release
+	    // 02.00.00 | 30.03.2015 | Online Support         | Upgrade to TIA Portal V13 SP1, use function IO_LINK_DEVICE, only one function for S7-1200 and 1500
+	    // 02.01.00 | 23.10.2015 | Online Support         | Update to IO_LINK_DEVICE Version 3.1
+	    // 03.00.00 | 01.09.2020 | Online Support         | Rewrote block for FB "LIOLink_Device" V4.0.0
+	    // 03.01.00 | 25.10.2022 | SUP SPH                | Optimized and function extension
+	    //===============================================================================
+	END_REGION
+	
+	REGION INIT
+	    IF (#execute = TRUE AND #instDevice.status = #STATUS_IDLE) THEN
+	        
+	        REGION Inputs
+	            //save inputs
+	            #statHwID := #hwID;
+	            #statCap := #cap;
+	            #statReadWrite := #readWrite;
+	            #statPort := #port;
+	            #statPollingPeriod := #pollingPeriod;
+	            #statDirectParameter1 := #directParameter1;
+	            #statSystemCommand := #systemCommand;
+	            #statDeviceAccessLocks := #deviceAccessLocks;
+	            #statVendorName := #vendorName;
+	            #statVendorText := #vendorText;
+	            #statProductName := #productName;
+	            #statProductID := #productID;
+	            #statProductText := #productText;
+	            #statSerialNumber := #serialNumber;
+	            #statHwRevision := #hwRevision;
+	            #statFwRevision := #fwRevision;
+	            #statAppSpecificName := #appSpecificName;
+	            #statErrorCount := #errorCount;
+	            #statDeviceStatus := #deviceStatus;
+	            #statDeviceStatusDetailed := #deviceStatusDetailed;
+	            #statProcessIn := #processIn;
+	            #statProcessOut := #processOut;
+	            #statParameters := #parameters;
+	            #statEventHistory := #eventHistory;
+	            #statReaderStatus := #readerStatus;
+	            #statTagStatus := #tagStatus;
+	            #statUidHistory := #uidHistory;
+	        END_REGION
+	        
+	        REGION Request selector
+	            //set Index and RecordLen based on the request
+	            IF #statDirectParameter1 THEN
+	                #statIndex := #INDEX_DIRECT_PARAM1;
+	                #statRecordLen := #LENGTH_DIRECT_PARAM1;
+	            ELSIF #statSystemCommand THEN
+	                #statIndex := #INDEX_SYSTEM_COMMAND;
+	                #statRecordLen := #LENGTH_SYSTEM_COMMAND;
+	            ELSIF #statDeviceAccessLocks THEN
+	                #statIndex := #INDEX_ACCESS_LOCKS;
+	                #statRecordLen := #LENGTH_ACCESS_LOCKS;
+	            ELSIF #statVendorName THEN
+	                #statIndex := #INDEX_VENDOR_NAME;
+	                #statRecordLen := #LENGTH_VENDOR_NAME;
+	            ELSIF #statVendorText THEN
+	                #statIndex := #INDEX_VENDOR_TEXT;
+	                #statRecordLen := #LENGTH_VENDOR_TEXT;
+	            ELSIF #statProductName THEN
+	                #statIndex := #INDEX_PRODUCT_NAME;
+	                #statRecordLen := #LENGTH_PRODUCT_NAME;
+	            ELSIF #statProductID THEN
+	                #statIndex := #INDEX_PRODUCT_ID;
+	                #statRecordLen := #LENGTH_PRODUCT_ID;
+	            ELSIF #statProductText THEN
+	                #statIndex := #INDEX_PRODUCT_TEXT;
+	                #statRecordLen := #LENGTH_PRODUCT_TEXT;
+	            ELSIF #statSerialNumber THEN
+	                #statIndex := #INDEX_SERIAL_NUMBER;
+	                #statRecordLen := #LENGTH_SERIAL_NUMBER;
+	            ELSIF #statHwRevision THEN
+	                #statIndex := #INDEX_HARDWARE_REVISION;
+	                #statRecordLen := #LENGTH_HARDWARE_REVISION;
+	            ELSIF #statFwRevision THEN
+	                #statIndex := #INDEX_FIRMWARE_REVISION;
+	                #statRecordLen := #LENGTH_FIRMWARE_REVISION;
+	            ELSIF #statAppSpecificName THEN
+	                #statIndex := #INDEX_APP_SPECIFIC_NAME;
+	                #statRecordLen := #LENGTH_APP_SPECIFIC_NAME;
+	            ELSIF #statErrorCount THEN
+	                #statIndex := #INDEX_ERROR_COUNT;
+	                #statRecordLen := #LENGTH_ERROR_COUNT;
+	            ELSIF #statDeviceStatus THEN
+	                #statIndex := #INDEX_DEVICE_STATUS;
+	                #statRecordLen := #LENGTH_DEVICE_STATUS;
+	            ELSIF #statDeviceStatusDetailed THEN
+	                #statIndex := #INDEX_DETAILED_STATUS;
+	                #statRecordLen := #LENGTH_DETAILED_STATUS;
+	            ELSIF #statProcessIn THEN
+	                #statIndex := #INDEX_PII;
+	                #statRecordLen := #LENGTH_PII;
+	            ELSIF #statProcessOut THEN
+	                #statIndex := #INDEX_PIQ;
+	                #statRecordLen := #LENGTH_PIQ;
+	            ELSIF #statParameters THEN
+	                #statIndex := #INDEX_PARAMETERS;
+	                #statRecordLen := #LENGTH_PARAMETERS;
+	            ELSIF #statEventHistory THEN
+	                #statIndex := #INDEX_EVENT_HISTORY;
+	                #statRecordLen := #LENGTH_EVENT_HISTORY;
+	            ELSIF #statReaderStatus THEN
+	                #statIndex := #INDEX_READER_STATUS;
+	                #statRecordLen := #LENGTH_READER_STATUS;
+	            ELSIF #statTagStatus THEN
+	                #statIndex := #INDEX_TAG_STATUS;
+	                #statRecordLen := #LENGTH_TAG_STATUS;
+	            ELSIF #statUidHistory THEN
+	                #statIndex := #INDEX_UID_HISTORY;
+	                #statRecordLen := #LENGTH_UID_HISTORY;
+	            ELSE
+	                RETURN;
+	            END_IF;
+	        END_REGION
+	        
+	        IF #statReadWrite = #MODE_WRITE THEN
+	            //prepare statRecord in case of a writing request
+	            REGION write
+	                IF #statSystemCommand THEN
+	                    #statRecord[0] := #data.systemCommand;
+	                    
+	                ELSIF #statDeviceAccessLocks THEN
+	                    #statRecord[0] := #data.deviceAccessLocks.%B0;
+	                    #statRecord[1] := #data.deviceAccessLocks.%B1;
+	                    
+	                ELSIF #statAppSpecificName THEN
+	                    Strg_TO_Chars(Strg := #data.appSpecificName,
+	                                  pChars := 0,
+	                                  Cnt => #tempLen,
+	                                  Chars := #statRecord);
+	                    
+	                ELSIF #statParameters THEN
+	                    #tempRetValSerialize := Serialize(SRC_VARIABLE := #data.parameters, DEST_ARRAY => #tempFieldParameters, POS := #tempPosSerialize);
+	                    UMOVE_BLK(IN := #tempFieldParameters[0],
+	                              COUNT := INT_TO_ULINT(#statRecordLen),
+	                              OUT => #statRecord[0]);
+	                    // Fill remaining characters with null
+	                    FOR #tempIndex := #tempLen TO INT_TO_UINT(#statRecordLen - 1) DO
+	                        #statRecord[#tempIndex] := CHAR_TO_BYTE(#EMPTY_CHAR);
+	                    END_FOR;
+	                ELSE // all other data sets are read only  
+	                    ;
+	                END_IF;
+	                #tempInternalError := #tempRetValSerialize <> WORD_TO_INT(#STATUS_EXECUTION_FINISHED);
+	            END_REGION
+	        END_IF;
+	    END_IF;
+	END_REGION
+	
+	REGION CALL
+	    //IOL-Call -> Request to read/write from an IO-Link-Device
+	    #instDevice(execute := #execute,
+	                hwID := #statHwID,
+	                cap := #statCap,
+	                readWrite := #statReadWrite,
+	                "port" := #statPort,
+	                pollingPeriod := #statPollingPeriod,
+	                index := #statIndex,
+	                subindex := #statSubindex,
+	                writeLen := #statRecordLen,
+	                timeout := #DEVICE_TIMEOUT,
+	                record := #statRecord);
+	END_REGION
+	
+	REGION READ
+	    // Copy data if available and valid
+	    IF #instDevice.done = TRUE AND #statDoneOld = FALSE AND #statReadWrite = #MODE_READ THEN
+	        IF #statDirectParameter1 THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldParameterPage0[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldParameterPage0, DEST_VARIABLE => #data.directParameterPage, POS := #tempPosDeserialize);
+	            
+	        ELSIF #statDeviceAccessLocks THEN
+	            #data.deviceAccessLocks.%B0 := #statRecord[0];
+	            #data.deviceAccessLocks.%B1 := #statRecord[1];
+	            
+	        ELSIF #statVendorName THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.vendorName);
+	            
+	        ELSIF #statVendorText THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.vendorText);
+	            
+	        ELSIF #statProductName THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.productName);
+	            
+	        ELSIF #statProductID THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.productID);
+	            
+	        ELSIF #statProductText THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.productText);
+	            
+	        ELSIF #statSerialNumber THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.serialNumber);
+	            
+	        ELSIF #statHwRevision THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.hwRevision);
+	            
+	        ELSIF #statFwRevision THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.fwRevision);
+	            
+	        ELSIF #statAppSpecificName THEN
+	            Chars_TO_Strg(Chars := #statRecord,
+	                          pChars := 0,
+	                          Cnt := INT_TO_UINT(#statRecordLen),
+	                          Strg => #data.appSpecificName);
+	            
+	        ELSIF #statErrorCount THEN
+	            #data.errorCount.%B0 := #statRecord[1];
+	            #data.errorCount.%B1 := #statRecord[0];
+	            
+	        ELSIF #statDeviceStatus THEN
+	            #data.deviceStatus := #statRecord[0];
+	            
+	        ELSIF #statDeviceStatusDetailed THEN
+	            #data.deviceStatusDetailed := #statRecord[0];
+	            
+	        ELSIF #statProcessIn THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #data.processImageIn[0]);
+	            
+	        ELSIF #statProcessOut THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #data.processImageOut[0]);
+	            
+	        ELSIF #statParameters THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldParameters[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldParameters, DEST_VARIABLE => #data.parameters, POS := #tempPosDeserialize);
+	            
+	        ELSIF #statEventHistory THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldEventHistory[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldEventHistory, DEST_VARIABLE => #data.eventHistory, POS := #tempPosDeserialize);
+	            
+	        ELSIF #statReaderStatus THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldReaderStatus[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldReaderStatus, DEST_VARIABLE => #data.readerStatus, POS := #tempPosDeserialize);
+	            
+	        ELSIF #statTagStatus THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldTagStatus[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldTagStatus, DEST_VARIABLE => #data.tagStatus, POS := #tempPosDeserialize);
+	            
+	        ELSIF #statUidHistory THEN
+	            UMOVE_BLK(IN := #statRecord[0],
+	                      COUNT := INT_TO_ULINT(#statRecordLen),
+	                      OUT => #tempFieldUIDHistory[0]);
+	            #tempRetValDeserialize := Deserialize(SRC_ARRAY := #tempFieldUIDHistory, DEST_VARIABLE => #data.uidHistory, POS := #tempPosDeserialize);
+	        ELSE // Other data sets are not defined
+	            ;
+	        END_IF;
+	        #tempInternalError := #tempRetValDeserialize <> WORD_TO_INT(#STATUS_EXECUTION_FINISHED);
+	    END_IF;
+	    
+	    #statDoneOld := #instDevice.done;
+	END_REGION
+	
+	REGION OUTPUTS
+	    IF #tempInternalError THEN //Error occured
+	        #done := false;
+	        #busy := false;
+	        #error := true;
+	        #status := #ERR_INCONSISTENT_DATA;
+	    ELSE //Execute successful
+	        #done := #instDevice.done;
+	        #busy := #instDevice.busy;
+	        #error := #instDevice.error;
+	        #status := #instDevice.status;
+	        #diagnostics := #instDevice.diagnostics;
+	    END_IF;
+	END_REGION
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "LIOLink_RF200_ReadTag"
+TITLE = LIOLink_RF200_ReadTag
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SIOS
+FAMILY : LIOLink
+VERSION : 3.0
+//Reads tags from SIMATIC RF200 readers via IO-Link
+   VAR_INPUT 
+      execute : Bool;   // Request job (on rising edge)
+      addrTag : Word;   // Start address of data on tag
+      length : Word;   // Length of data to be read
+      hwID : HW_SUBMODULE;   // Logic IO address of the IO-Link Master
+      portAddr : Int;   // Start address of port
+      "version" : USInt := #IOL_V11;   // IO-Link version of the reader; 11: IO-Link V1.1, 10: IO-Link V1.0
+   END_VAR
+
+   VAR_OUTPUT 
+      done { ExternalWritable := 'False'} : Bool;   // FALSE: data invalid, TRUE: data valid
+      busy { ExternalWritable := 'False'} : Bool;   // FALSE: no job, TRUE: job in progress
+      error { ExternalWritable := 'False'} : Bool;   // FALSE: no error, TRUE: error
+      status { ExternalWritable := 'False'} : DWord;   // Error status
+      presence { ExternalWritable := 'False'} : Bool;   // TRUE: Transponder on field
+   END_VAR
+
+   VAR_IN_OUT 
+      identData : Variant;   // Received tag identification data
+   END_VAR
+
+   VAR 
+      statPae { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_NETTO_IO_FIELD] of Byte;   // Partly recived identification data vie Process image
+      statStatusByte { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // RF200 Tag reader status byte
+      statPresence { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Transponder on field
+      statState { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Main State Machine Index
+      statAddr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Start address of data on tag
+      statOffset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Buffer offset
+      statExecuteReq { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Execute function memory
+      statLength { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Length of read data
+      statDat { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte;   // Data to Send
+      statRecDat { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte;   // Data Received
+      statAddrOffset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Start adress of port
+      statPresenceFF { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Transponder on field
+      instTonrTime {InstructionName := 'TONR_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TONR_TIME;   // Tag has left antenna field detection timer
+      statTimerIn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Tag has left antenna field detection timer - Start Tag
+      statTimerR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Tag has left antenna field detection timer - Reset Tag
+      statTimerPt { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time := #DETECTION_TIME_TAG_OFF_FIELD;   // Tag has left antenna field detection timer - Detection time
+      statReadData { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_MAX_DATA_FIELD] of Byte;   // Received tag identification data
+      statCountCopyPae { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Length of current next data part in process image
+      statBusy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: FB is not finished and new output values can be expected
+      statDone { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Commanded functionality has been completed successfully
+      statError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Commanded functionality has been canceled with error
+      statReturnMoveBlkVar { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Return Value PAE copy function
+      statDiffToIOsizeNetto { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Difference between requested length and PAE
+      instSetIoPart {InstructionName := 'SETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : SETIO_PART;   // Instance for PIQ writing
+      statIoPartError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: data in process image is invalid
+      statIoPartStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DWord;   // Status for IO access
+      instGetIoPart {InstructionName := 'GETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : GETIO_PART;   // Instance for PII reading
+      statIOsize { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;   // Size of the IO-Link Master PII
+      statIOsizeNetto { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;   // Size of the IO-Link Master PAE without header
+   END_VAR
+
+   VAR_TEMP 
+      tempStatus : DWord;   // Auxiliary tag for status output
+   END_VAR
+
+   VAR CONSTANT 
+      IOL_V10 : USInt := 10;   // Identifier IO-Link version 1.0
+      IOL_V11 : USInt := 11;   // Identifier IO-Link version 1.1
+      LEN_DATA_V10 : USInt := 8;   // Length of user data for IO-Link version 1.0
+      LEN_DATA_V11 : USInt := 32;   // Length of user data for IO-Link version 1.1
+      UPPER_BOUND_IO_FIELD : USInt := 31;   // Upper bound of Input and Output fields
+      UPPER_BOUND_NETTO_IO_FIELD : USInt := 27;   // Upper bound of Input and Output fields without header
+      UPPER_BOUND_MAX_DATA_FIELD : UInt := 1999;   // Upper bound of the data field of a RFID Tag
+      DATA_HEADER_SIZE : USInt := 4;   // IO-Link Header Size for version 1.0 and 1.1
+      CMD_READ : Byte := 16#02;   // Command to read data
+      CMD_RESET : Byte := 16#00;   // Command to reset
+      MIN_LENGTH_V10 : Word := 16#0004;   // Minimal Lenght of requested tag information
+      MIN_LENGTH_V11 : Word := 16#001C;   // Minimal Lenght of requested tag information
+      STATUS_ERROR_IDENT_BLOCK : Word := 16#0001;   // Error Identification for block internal faults
+      STATUS_ERROR_IDENT_RFID : Word := 16#0011;   // Error Identification for RFID reader faults
+      STATUS_NO_JOB : Word := 16#0000;   // No job requested
+      STATUS_ERROR_TAG_HAS_LEFT : Word := 16#8101;   // Error - the RFID tag has left the reader
+      STATUS_ERROR_STILL_ACTIVE : Word := 16#8102;   // Error - block still busy, no further request possible
+      STATUS_ERROR_LENGTH : Word := 16#8104;   // Error - requested length is less than 0
+      STATE_IDLE : Int := 0;   // State Machine - Idle State
+      STATE_READ : Int := 2;   // State Machine - Read Tag
+      STATE_TELEGRAM : Int := 1;   // State Machine - Prepare telegram
+      STATE_ERROR : Int := 3;   // State Machine - Error State
+      DETECTION_TIME_TAG_OFF_FIELD : Time := T#5S;   // Tag has left antenna field detection time
+      INDEX_CMD : USInt := 0;   // Index in DataField - Command
+      INDEX_RFID_ERROR : USInt := 1;   // Index in DataField - Error
+      INDEX_ADDR_HIGH : USInt := 2;   // Index in DataField - Address High Byte
+      INDEX_ADDR_LOW : USInt := 3;   // Index in DataField - Address Low Byte
+      INDEX_SOURCE_DATA : DInt := 4;   // Index in Data Field - Start of netto Data
+   END_VAR
+
+
+BEGIN
+	REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_RF200_ReadTag
+	    // Function:         Reads tags from SIMATIC RF200 readers via IO-Link
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------
+	    // Change log table:
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 01.07.2013 | Online Support         | First release
+	    // 01.01.00 | 01.12.2016 | Online Support         | Upgraded to TIA Portal V14
+	    // 02.00.00 | 01.09.2017 | Online Support         | Upgraded to TIA Portal V14 SP1
+	    //                                                | Implemented Programming styleguide
+	    //                                                | Added support for IO-Link V1.1 readers
+	    // 02.01.00 | 01.12.2017 | Online Support         | Bug fixes and performance improvements
+	    // 02.02.00 | 01.03.2020 | Online Support         | Upgraded to TIA Portal V16
+	    // 02.03.00 | 22.09.2020 | Online Support         | Integrated FB into LIOLink library
+	    //                                                | Renamed FB to LIOLink_RF200_ReadTag
+	    //                                                | Combined FBs for IO-Link V1.0 and V1.1
+	    //                                                | Minor bug fixes
+	    // 02.04.00 | 29.06.2022 | Online Support         | Minor bug fixes     
+	    // 02.05.00 | 30.09.2022 | SUP SPH                | Optimization     
+	    //===============================================================================
+	END_REGION
+	
+	REGION Check version
+	    //determine IO-Link reader version (1.0/1.1) to set offsets
+	    IF #version = #IOL_V11 THEN
+	        #statIOsize := #LEN_DATA_V11;
+	        #statIOsizeNetto := #LEN_DATA_V11 - #DATA_HEADER_SIZE;
+	    ELSE
+	        #statIOsize := #LEN_DATA_V10;
+	        #statIOsizeNetto := #LEN_DATA_V10 - #DATA_HEADER_SIZE;
+	    END_IF;
+	END_REGION
+	
+	REGION Get PII
+	    #statAddrOffset := #portAddr;   //start adress of port
+	    
+	    // Read PII
+	    #instGetIoPart(ID := #hwID,
+	                   OFFSET := #statAddrOffset,
+	                   LEN := #statIOsize,
+	                   STATUS => #statIoPartStatus,
+	                   ERROR => #statIoPartError,
+	                   INPUTS := #statRecDat);
+	    
+	    #statStatusByte := #statRecDat[0];    //Status Byte
+	    #statPresence := #statStatusByte.%X5;   //Presence bit. Transponder on field
+	END_REGION
+	
+	REGION Check execute
+	    REGION Idle
+	        IF NOT #execute THEN
+	            #statDone := false;
+	            #statBusy := false;
+	            #statError := false;
+	            #tempStatus := #STATUS_NO_JOB;
+	        END_IF;
+	    END_REGION
+	    
+	    REGION Job requested
+	        //Positive edge for reading of data
+	        IF #execute AND #execute <> #statExecuteReq THEN
+	            IF NOT #statBusy THEN
+	                #statAddr := #addrTag;    //Transpoder Address
+	                #statDiffToIOsizeNetto := WORD_TO_INT(#length) MOD #statIOsizeNetto;
+	                #statLength := WORD_TO_DINT(#length);   //Length of read Dat
+	                #statBusy := TRUE;
+	                #statDone := FALSE;
+	                #statError := FALSE;
+	                #tempStatus := #STATUS_NO_JOB;
+	                #statOffset := 0;   //offset of puffer must be reseted
+	                #statState := #STATE_READ;    //next step >> send read command
+	                #statCountCopyPae := 0;
+	                FILL_BLK(IN := 0,    //Reset read buffer
+	                         COUNT := CountOfElements(#identData),
+	                         OUT => #statReadData[0]);
+	            ELSE
+	                #tempStatus.%W0 := #STATUS_ERROR_STILL_ACTIVE;                       //block is still active
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;                        //Error identifier for block errors
+	                #statState := #STATE_ERROR;
+	            END_IF;
+	            IF #length < 0 OR (#length < #MIN_LENGTH_V11 AND #version = #IOL_V11) OR (#length < #MIN_LENGTH_V10 AND #version = #IOL_V10) THEN
+	                #tempStatus.%W0 := #STATUS_ERROR_LENGTH;                             //length too short
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;                        //identifier rfid errors
+	                #statState := #STATE_ERROR;
+	            END_IF;
+	        END_IF;
+	    END_REGION
+	    #statExecuteReq := #execute;
+	END_REGION
+	
+	REGION Tag presence detection
+	    IF NOT #statPresence AND #statPresence <> #statPresenceFF THEN   //the tag has left the antenna  field
+	        IF NOT #statDone THEN
+	            #statTimerIn := true;   //wait 5 sec
+	            #statTimerR := false;
+	        END_IF;
+	    END_IF;
+	    #statPresenceFF := #statPresence;
+	    IF #statPresence THEN
+	        #statTimerR := true;
+	        #statTimerIn := false;
+	    END_IF;
+	END_REGION
+	
+	REGION State machine
+	    CASE #statState OF
+	        #STATE_IDLE:
+	            #statBusy := false;
+	            #statTimerIn := false;
+	            
+	        #STATE_READ:
+	            IF #statLength > 0 THEN
+	                #statDat[#INDEX_CMD] := #CMD_READ;    //Set read command
+	                #statDat[#INDEX_ADDR_HIGH] := #statAddr.%B1;    //Adr-H
+	                #statDat[#INDEX_ADDR_LOW] := #statAddr.%B0;   //Adr-L
+	            END_IF;
+	            
+	            IF NOT #statIoPartError THEN
+	                #statState := #STATE_TELEGRAM;    //Telegram: Edit the read data
+	            END_IF;
+	            
+	        #STATE_TELEGRAM:
+	            IF #statLength > 0 THEN   //Only when length of data>0 can continue  
+	                IF #statStatusByte.%X6 THEN   //IF RFID error has occured
+	                    #tempStatus.%W0 := #statRecDat[#INDEX_RFID_ERROR];    //error_RFID
+	                    #tempStatus.%W1 := #STATUS_ERROR_IDENT_RFID;    //Error identifier for RFID errors
+	                    #statState := #STATE_ERROR;
+	                END_IF;
+	                
+	                //-------------------------- read command is ready------------------------------------------------//
+	                IF #statStatusByte.%X7 AND #statStatusByte.%X1 THEN
+	                    IF #statRecDat[#INDEX_ADDR_HIGH] = #statAddr.%B1
+	                        AND #statRecDat[#INDEX_ADDR_LOW] = #statAddr.%B0
+	                    THEN //received ADR must be ==sent ADR
+	                        #statReturnMoveBlkVar := MOVE_BLK_VARIANT(SRC := #statRecDat,
+	                                                                  COUNT := #statIOsizeNetto,
+	                                                                  SRC_INDEX := #INDEX_SOURCE_DATA,
+	                                                                  DEST_INDEX := 0,
+	                                                                  DEST => #statPae);
+	                        
+	                        IF NOT #statIoPartError THEN
+	                            IF #statCountCopyPae = 0 THEN    //copy the #statIOsizeNet Bytes in 
+	                                IF #statLength >= #statIOsizeNetto THEN
+	                                    IF #statLength <> WORD_TO_DINT(#length) THEN
+	                                        #statAddr := INT_TO_WORD(WORD_TO_INT(#statAddr) + #statIOsizeNetto);
+	                                    END_IF;
+	                                    #statState := #STATE_READ;
+	                                    #statCountCopyPae := #statIOsizeNetto;
+	                                ELSE
+	                                    IF #statStatusByte.%X7 AND NOT #statStatusByte.%X6 THEN
+	                                        IF #statDiffToIOsizeNetto <> 0 THEN
+	                                            #statCountCopyPae := #statDiffToIOsizeNetto;
+	                                            #statAddr := INT_TO_WORD(WORD_TO_INT(#statAddr) + #statIOsizeNetto);
+	                                            #statState := #STATE_READ;
+	                                        ELSE
+	                                            #statCountCopyPae := #statIOsizeNetto;
+	                                        END_IF;
+	                                    ELSE
+	                                        #statState := #STATE_IDLE;
+	                                    END_IF;
+	                                END_IF;
+	                            ELSE
+	                                #statReturnMoveBlkVar := MOVE_BLK_VARIANT(SRC := #statPae,
+	                                                                          COUNT := DINT_TO_UDINT(#statCountCopyPae),
+	                                                                          SRC_INDEX := 0,
+	                                                                          DEST_INDEX := #statOffset,
+	                                                                          DEST => #statReadData);
+	                                IF #statReturnMoveBlkVar = 0 THEN
+	                                    #statCountCopyPae := 0;
+	                                    #statOffset := #statOffset + #statIOsizeNetto;
+	                                    #statLength := #statLength - #statIOsizeNetto;
+	                                END_IF;
+	                            END_IF;
+	                        ELSE
+	                            #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);    //Error has to BLKMOV occured
+	                            #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //functions-Error identifier
+	                            #statState := #STATE_ERROR;
+	                        END_IF;
+	                    END_IF;
+	                END_IF;
+	                #instSetIoPart(ID := #hwID,
+	                               OFFSET := #statAddrOffset,
+	                               LEN := #statIOsize,
+	                               STATUS => #statIoPartStatus,
+	                               ERROR => #statIoPartError,
+	                               OUTPUTS := #statDat);
+	                
+	                IF #statIoPartError THEN
+	                    #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);    //Error has to BLKMOV occured
+	                    #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //functions-Error identifier
+	                    #statState := #STATE_ERROR;
+	                END_IF;
+	                
+	            ELSE
+	                VariantPut(SRC := #statReadData,
+	                           DST := #identData);
+	                #statState := #STATE_IDLE;
+	                #statBusy := false;
+	                #statDone := true;
+	                
+	                //Reset read command
+	                #statDat[#INDEX_CMD] := #CMD_RESET;
+	                
+	                #instSetIoPart(ID := #hwID,
+	                               OFFSET := #statAddrOffset,
+	                               LEN := #statIOsize,
+	                               STATUS => #statIoPartStatus,
+	                               ERROR => #statIoPartError,
+	                               OUTPUTS := #statDat);
+	            END_IF;
+	            
+	        #STATE_ERROR:
+	            #statBusy := false;
+	            #statDone := false;
+	            #statError := true;
+	            #statTimerIn := false;
+	            #statTimerR := true;
+	            #statState := #STATE_IDLE;
+	            
+	            //Reset read command
+	            #statDat[#INDEX_CMD] := #CMD_RESET;
+	            
+	            #instSetIoPart(ID := #hwID,
+	                           OFFSET := #statAddrOffset,
+	                           LEN := #statIOsize,
+	                           STATUS => #statIoPartStatus,
+	                           ERROR => #statIoPartError,
+	                           OUTPUTS := #statDat);
+	        ELSE
+	            #statState := #STATE_IDLE;
+	    END_CASE;
+	END_REGION
+	
+	REGION Detection timer
+	    #instTonrTime(IN := #statTimerIn,   //this timer will start, if the tag has left the antenna field
+	                  R := #statTimerR,
+	                  PT := #statTimerPt);
+	    IF #instTonrTime.Q THEN   //error has occured. No tag on field during the 5 sec.
+	        #tempStatus.%W0 := #STATUS_ERROR_TAG_HAS_LEFT;    //tag has left the field
+	        #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //identifier rfid errors
+	        #statState := #STATE_ERROR;
+	    END_IF;
+	END_REGION
+	
+	REGION Update output interface 
+	    #done := #statDone;
+	    #busy := #statBusy;
+	    #error := #statError;
+	    #status := #tempStatus;
+	    #presence := #statPresence;
+	END_REGION
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "LIOLink_RF200_SwitchAntenna"
+TITLE = LRfidIOL_ANT
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SIOS
+FAMILY : LIOLink
+VERSION : 3.1
+//Set Antenna
+//IO-Link V1.1
+   VAR_INPUT 
+      execute : Bool;   // Execute function
+      antennaState : Bool;   // TRUE: activate antenna, FALSE: deactivate antenna
+      hwID : HW_SUBMODULE;   // Hardware identifier of IO-Link communication module
+      portAddr : Int;   // Start address of port
+      "version" : USInt := #IOL_V11;   // IO-Link version of the reader; 11: IO-Link V1.1, 10: IO-Link V1.0
+   END_VAR
+
+   VAR_OUTPUT 
+      done { ExternalWritable := 'False'} : Bool;   // TRUE: Job done
+      busy { ExternalWritable := 'False'} : Bool;   // TRUE: Job active
+      error { ExternalWritable := 'False'} : Bool;   // TRUE: Error has occured
+      status { ExternalWritable := 'False'} : DWord;   // Error status
+      presence { ExternalWritable := 'False'} : Bool;   // TRUE: Transponder on field
+   END_VAR
+
+   VAR 
+      statExecuteReq { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // State of execute input of last cycle
+      statAntStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Status Byte of antenna
+      statState { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : UInt;   // Main State Machine Index
+      statAnt { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte;   // Received buffer of Antenna data
+      statSent { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte;   // Sent buffer for Antenna
+      statPresence { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Presence bit. Transponder on field
+      statBusy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Job active
+      instSetIoPart {InstructionName := 'SETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : SETIO_PART;   // Instance for PIQ writing
+      statIoPartError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: data in process image is invalid
+      statIoPartStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DWord;   // Status for IO access
+      instGetIoPart {InstructionName := 'GETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : GETIO_PART;   // Instance for PII reading
+      statIOsize { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Size of the IO-Link Master PII
+   END_VAR
+
+   VAR_TEMP 
+      tempDone : Bool;   // Auxiliary tag for done output
+      tempError : Bool;   // Auxiliary tag for error output
+      tempStatus : DWord;   // Auxiliary tag for status output
+   END_VAR
+
+   VAR CONSTANT 
+      IOL_V10 : USInt := 10;   // Identifier IO-Link version 1.0
+      IOL_V11 : USInt := 11;   // Identifier IO-Link version 1.1
+      LEN_DATA_V10 : USInt := 8;   // Length of user data for IO-Link version 1.0
+      LEN_DATA_V11 : USInt := 32;   // Length of user data for IO-Link version 1.1
+      UPPER_BOUND_IO_FIELD : USInt := 31;   // Upper bound of Input and Output fields
+      STATE_IDLE : UInt := 0;   // State Machine - Idle State
+      STATE_ANTENNA_ON : UInt := 1;   // State Machine - Switch Antenna on
+      STATE_ANTENNA_OFF : UInt := 2;   // State Machine - Switch Antenna off
+      STATE_READY : UInt := 3;   // State Machine - Job done
+      STATUS_ERROR_IDENT_BLOCK : Word := 16#0001;   // Error Identification for block internal faults
+      STATUS_ERROR_IDENT_RFID : Word := 16#0011;   // Error Identification for RFID reader faults
+      STATUS_NO_JOB : Word := 16#0000;   // No job requested
+      STATUS_ERROR_TAG_HAS_LEFT : Word := 16#8101;   // Error - the RFID tag has left the reader
+      STATUS_ERROR_STILL_ACTIVE : Word := 16#8102;   // Error - block still busy, no further request possible
+      STATUS_ERROR_LENGTH : Word := 16#8104;   // Error - requested length is less than 0
+      CMD_ANTENNA_ON : Byte := 16#00;   // Command to switsch antenna on
+      CMD_ANTENNA_OFF : Byte := 16#10;   // Command to switsch antenna off
+      INDEX_ANT_STATUS : USInt := 0;   // Index in Antenna DataField - Status
+      INDEX_RFID_ERROR : USInt := 1;   // Index in Antenna DataField - Error
+      INDEX_SEND_CMD : USInt := 0;   // Index in Send DataField - Command
+   END_VAR
+
+
+BEGIN
+	REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_RF200_SwitchAntenna
+	    // Function:         Switches the antenna of SIMATIC RF200 readers via IO-Link
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------
+	    // Change log table:
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 01.07.2013 | Online Support         | First release
+	    // 01.01.00 | 01.12.2016 | Online Support         | Upgrade to TIA Portal V14
+	    // 02.00.00 | 01.09.2017 | Online Support         | Upgrade to TIA Portal V14 SP1
+	    //                                                | Implementation of Programming styleguide
+	    //                                                | Added support for IO-Link V1.1 readers
+	    // 02.01.00 | 01.12.2017 | Online Support         | Bug fixes and performance improvements
+	    // 02.02.00 | 01.03.2020 | Online Support         | Upgrade to TIA Portal V16
+	    // 02.03.00 | 22.09.2020 | Online Support         | Integrated FB into LIOLink library
+	    //                                                | Renamed FB to LIOLink_RF200_SwitchAntenna
+	    //                                                | Combined FBs for IO-Link V1.0 and V1.1
+	    //                                                | Minor bug fixes
+	    // 02.04.00 | 04.10.2022 | SUP SPH                | Optimization
+	    //===============================================================================
+	END_REGION
+	
+	REGION Check version
+	    IF #version = #IOL_V11 THEN                               //determine IO-Link reader version (1.0/1.1) to set offset
+	        #statIOsize := #LEN_DATA_V11;
+	    ELSE
+	        #statIOsize := #LEN_DATA_V10;
+	    END_IF;
+	END_REGION
+	
+	REGION Get PII
+	    
+	    #instGetIoPart(ID := #hwID,   //read data from process image
+	                   OFFSET := #portAddr,
+	                   LEN := #statIOsize,
+	                   STATUS => #statIoPartStatus,
+	                   ERROR => #statIoPartError,
+	                   INPUTS := #statAnt);
+	    #statAntStatus := #statAnt[#INDEX_ANT_STATUS];    //status byte
+	    #statPresence := #statAntStatus.%X5;    //Presence bit. Transponder on field
+	END_REGION
+	
+	REGION Check antenna status
+	    IF #statAnt[#INDEX_RFID_ERROR] <> 0 AND #statBusy THEN
+	        #tempStatus.%W0 := BYTE_TO_WORD(#statAnt[#INDEX_RFID_ERROR]);    //error_BLK
+	        #tempStatus.%W1 := #STATUS_ERROR_IDENT_RFID;                    //identifier rfid errors
+	        #statBusy := false;
+	        #tempDone := false;
+	        #tempError := TRUE;
+	        #statState := #STATE_IDLE;
+	    END_IF;
+	END_REGION
+	
+	REGION Check execute
+	    REGION Idle
+	        IF NOT #execute THEN
+	            #tempDone := false;
+	            #tempError := false;
+	            #tempStatus := 0;
+	        END_IF;
+	    END_REGION
+	    
+	    REGION Job executed
+	        IF #execute AND #execute <> #statExecuteReq THEN //Positive Edge for antenna on
+	            #statBusy := TRUE;                              //Block active
+	            #tempDone := FALSE;                             //reset all output parameters
+	            #tempError := FALSE;
+	            #tempStatus := #STATUS_NO_JOB;
+	            IF #antennaState THEN                          //if antenna then activate the ANTENNA_ON process
+	                #statState := #STATE_ANTENNA_ON;
+	            ELSIF NOT #antennaState THEN                   //if not antenna then activate the ANTENNA_OFF process 
+	                #statState := #STATE_ANTENNA_OFF;
+	            END_IF;
+	            
+	        END_IF;
+	    END_REGION
+	    #statExecuteReq := #execute;
+	END_REGION
+	
+	REGION State machine
+	    CASE #statState OF
+	        #STATE_IDLE:
+	            ;
+	            
+	        #STATE_ANTENNA_ON:  //Antenna_on
+	            //Antenna on process
+	            #statAntStatus.%X4 := false;                        //Reset Byte 0, bit 4
+	            #statSent[#INDEX_SEND_CMD] := #CMD_ANTENNA_ON;
+	            #instSetIoPart(ID := #hwID,                         //Write data into process image
+	                           OFFSET := #portAddr,
+	                           LEN := #statIOsize,
+	                           STATUS => #statIoPartStatus,
+	                           ERROR => #statIoPartError,
+	                           OUTPUTS := #statSent);
+	            IF NOT #statIoPartError AND #statAnt[#INDEX_RFID_ERROR] = 0 THEN
+	                #statState := #STATE_READY;
+	            ELSIF #statIoPartError THEN
+	                #tempError := true;
+	                #statBusy := FALSE;
+	                #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);//error_BLK
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;                    //identifier block errors
+	                #statState := #STATE_IDLE;
+	            END_IF;
+	            
+	        #STATE_ANTENNA_OFF:
+	            //Antenna off process
+	            #statAntStatus.%X4 := true;                         //set Byte 0, bit 4
+	            #statSent[#INDEX_SEND_CMD] := #CMD_ANTENNA_OFF;
+	            #instSetIoPart(ID := #hwID,                         //Write data into process image
+	                           OFFSET := #portAddr,
+	                           LEN := #statIOsize,
+	                           STATUS => #statIoPartStatus,
+	                           ERROR => #statIoPartError,
+	                           OUTPUTS := #statSent);
+	            IF NOT #statIoPartError AND #statAnt[#INDEX_RFID_ERROR] = 0 THEN
+	                IF #statAntStatus = #CMD_ANTENNA_OFF THEN    //if status_byte=16#10 then antenna off
+	                    #statState := #STATE_READY;
+	                END_IF;
+	            ELSIF #statIoPartError THEN
+	                #tempError := true;
+	                #statBusy := FALSE;
+	                #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);    //error_BLK
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //identifier block errors
+	                #statState := #STATE_IDLE;
+	            END_IF;
+	            
+	        #STATE_READY:
+	            #tempDone := true;
+	            #statBusy := FALSE;
+	            #statState := #STATE_IDLE;
+	        ELSE
+	            #statState := #STATE_IDLE;
+	    END_CASE;
+	END_REGION
+	
+	REGION Update output interface 
+	    #done := #tempDone;
+	    #busy := #statBusy;
+	    #error := #tempError;
+	    #status := #tempStatus;
+	    #presence := #statPresence;
+	END_REGION
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "LIOLink_RF200_WriteTag"
+TITLE = LIOLink_RF200_WriteTag
+{ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SIOS
+FAMILY : LIOLink
+VERSION : 2.4
+//Writes tags on SIMATIC RF200 readers via IO-Link
+   VAR_INPUT 
+      execute : Bool;   // Execute function
+      addrTag : Word;   // Start address of data on tag
+      length : Word;   // Length of data to be written
+      hwID : HW_SUBMODULE;   // Hardware identifier of IO-Link communication module
+      portAddr : Int;   // Start address of port
+      "version" : USInt := #IOL_V11;   // IO-Link version of the reader; 11: IO-Link V1.1, 10: IO-Link V1.0
+   END_VAR
+
+   VAR_OUTPUT 
+      done { ExternalWritable := 'False'} : Bool;   // TRUE: job done
+      busy { ExternalWritable := 'False'} : Bool;   // FALSE: no job, TRUE: job in progress
+      error { ExternalWritable := 'False'} : Bool;   // FALSE: no error, TRUE: error
+      status { ExternalWritable := 'False'} : DWord;   // Error Status
+      presence { ExternalWritable := 'False'} : Bool;   // Tag on antenna field
+   END_VAR
+
+   VAR_IN_OUT 
+      identData : Variant;   // Data to write in
+   END_VAR
+
+   VAR 
+      instTonR {InstructionName := 'TONR_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TONR_TIME;   // Tag has left antenna field detection timer
+      statState { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Main State Machine Index
+      statTimerIn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Tag has left antenna field detection timer - Start Tag
+      statTimerR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Tag has left antenna field detection timer - Reset Tag
+      statTimerPt { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time := #DETECTION_TIME_TAG_OFF_FIELD;   // Tag has left antenna field detection timer - Detection time
+      statStatusByte { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // First received Byte from process image
+      statDat { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte;   // Sent data
+      statRecDat { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_IO_FIELD] of Byte := [2(16#0000), 2(16#00FF)];   // Received data
+      statPresence { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: Transponder on field
+      statExecuteReq { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // State of execute input of last cycle
+      statLength { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Length of read Data
+      statAddr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Address of Tag
+      statWriteOffset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Data offset for write function
+      statPresenceFf { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Transpnder status of last cycle
+      statWriteData { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..#UPPER_BOUND_MAX_DATA_FIELD] of Byte;   // Data to write to tag
+      statDiffToIOsizeNetto { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Difference to full IO size
+      statBytemove { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Shift value for data
+      statDone { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: job done
+      statBusy { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // FALSE: no job, TRUE: job in progress
+      statError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // FALSE: no error, TRUE: error
+      instSetIoPart {InstructionName := 'SETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : SETIO_PART;   // Instance for PIQ writing
+      statIoPartError { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // TRUE: data in process image is invalid
+      statIoPartStatus { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DWord;   // Status for IO access
+      instGetIoPart {InstructionName := 'GETIO_PART'; LibVersion := '1.2'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : GETIO_PART;   // Instance for PII reading
+      statReturnMoveBlkVar { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Return Value of Block Move
+      statIOsize { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;   // Size of the IO-Link Master PII
+      statIOsizeNetto { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : USInt;   // Size of the IO-Link Master PAE without header
+   END_VAR
+
+   VAR_TEMP 
+      tempStatus : DWord;   // Auxiliary tag for status output
+   END_VAR
+
+   VAR CONSTANT 
+      IOL_V10 : USInt := 10;   // Identifier IO-Link version 1.0
+      IOL_V11 : USInt := 11;   // Identifier IO-Link version 1.1
+      LEN_DATA_V10 : USInt := 8;   // Length of user data for IO-Link version 1.0
+      LEN_DATA_V11 : USInt := 32;   // Length of user data for IO-Link version 1.1
+      UPPER_BOUND_IO_FIELD : USInt := 31;   // Upper bound of Input and Output fields
+      UPPER_BOUND_MAX_DATA_FIELD : UInt := 1999;   // Upper bound of the data field of a RFID Tag
+      DATA_HEADER_SIZE : USInt := 4;   // IO-Link Header Size for version 1.0 and 1.1
+      STATUS_ERROR_IDENT_BLOCK : Word := 16#0001;   // Error Identification for block internal faults
+      STATUS_ERROR_IDENT_RFID : Word := 16#0011;   // Error Identification for RFID reader faults
+      STATUS_NO_JOB : Word := 16#0000;   // No job requested
+      STATUS_ERROR_TAG_HAS_LEFT : Word := 16#8101;   // Error - the RFID tag has left the reader
+      STATUS_ERROR_STILL_ACTIVE : Word := 16#8102;   // Error - block still busy, no further request possible
+      STATUS_ERROR_LENGTH : Word := 16#8104;   // Error - requested length is less than 0
+      STATE_IDLE : Int := 0;   // State Machine - Idle State
+      STATE_WRITE : Int := 2;   // State Machine - Read Tag
+      STATE_TELEGRAM : Int := 1;   // State Machine - Prepare telegram
+      STATE_ERROR : Int := 3;   // State Machine - Error State
+      DETECTION_TIME_TAG_OFF_FIELD : Time := T#5S;   // Tag has left antenna field detection time
+      CMD_WRITE : Byte := 16#01;   // Command to read data
+      CMD_RESET : Byte := 16#00;   // Command to reset
+      INDEX_CMD : USInt := 0;   // Index in DataField - Command
+      INDEX_RFID_ERROR : USInt := 1;   // Index in DataField - Error
+      INDEX_ADDR_HIGH : USInt := 2;   // Index in DataField - Address High Byte
+      INDEX_ADDR_LOW : USInt := 3;   // Index in DataField - Address Low Byte
+      INDEX_SOURCE_DATA : DInt := 4;   // Index in Data Field - Start of netto Data
+      INDEX_REC_STATUS : DInt := 0;   // Index in Received DataField - Status
+   END_VAR
+
+
+BEGIN
+	REGION BLOCK INFO HEADER
+	    //===============================================================================
+	    // Siemens / (c)Copyright 2022
+	    //-------------------------------------------------------------------------------
+	    // Title:            LIOLink_RF200_WriteTag
+	    // Function:         Writes tags on SIMATIC RF200 readers via IO-Link
+	    // Library:          LIOLink
+	    // Author:           Siemens Industry Online Support
+	    // Tested with:      CPU 1513-1 PN FW 2.8
+	    // Engineering:      TIA Portal V16
+	    // Restrictions:     --
+	    // Requirements:     --
+	    //-------------------------------------------------------------------------------
+	    // Change log table:
+	    // Version  | Date       | Expert in charge       | Changes applied
+	    //----------|------------|------------------------|------------------------------
+	    // 01.00.00 | 01.03.2015 | Online Support         | First release
+	    // 01.01.00 | 01.12.2016 | Online Support         | Upgrade to TIA Portal V14
+	    // 02.00.00 | 01.09.2017 | Online Support         | Upgrade to TIA Portal V14 SP1
+	    //                                                | Implementation of Programming styleguide
+	    //                                                | Added support for IO-Link V1.1 readers
+	    // 02.01.00 | 01.12.2017 | Online Support         | Bug fixes and performance improvements
+	    // 02.02.00 | 01.03.2020 | Online Support         | Upgrade to TIA Portal V16
+	    // 02.03.00 | 22.09.2020 | Online Support         | Integrated FB into LIOLink library
+	    //                                                | Renamed FB to LIOLink_RF200_WriteTag
+	    //                                                | Combined FBs for IO-Link V1.0 and V1.1
+	    //                                                | Minor bug fixes
+	    // 02.04.00 | 04.10.2022 | SUP SPH                | Optimization                                               
+	    //===============================================================================
+	END_REGION
+	
+	REGION Check version
+	    IF #version = #IOL_V11 THEN   //determine IO-Link reader version (1.0/1.1) to set offsets
+	        #statIOsize := #LEN_DATA_V11;
+	        #statIOsizeNetto := #LEN_DATA_V11 - #DATA_HEADER_SIZE;
+	    ELSE
+	        #statIOsize := #LEN_DATA_V10;
+	        #statIOsizeNetto := #LEN_DATA_V10 - #DATA_HEADER_SIZE;
+	    END_IF;
+	END_REGION
+	
+	REGION Get PII
+	    //read data from process image
+	    #instGetIoPart(ID := #hwID,
+	                   OFFSET := #portAddr,
+	                   LEN := #statIOsize,
+	                   STATUS => #statIoPartStatus,
+	                   ERROR => #statIoPartError,
+	                   INPUTS := #statRecDat);
+	    
+	    #statStatusByte := #statRecDat[#INDEX_REC_STATUS];    //Status Byte
+	    #statPresence := #statStatusByte.%X5;   //Presence bit. Transponder on field
+	END_REGION
+	
+	REGION Check execute
+	    REGION Idle
+	        IF NOT #execute THEN
+	            #statDone := false;
+	            #statBusy := false;
+	            #statError := false;
+	            #tempStatus := #STATUS_NO_JOB;
+	        END_IF;
+	    END_REGION
+	    
+	    #statDiffToIOsizeNetto := WORD_TO_INT(#length) MOD #statIOsizeNetto;
+	    REGION Job requested
+	        IF #execute AND #execute <> #statExecuteReq THEN    //Positive edge for reading of data
+	            IF NOT #statBusy THEN
+	                #statAddr := #addrTag;    //Transpoder Adress
+	                #statLength := WORD_TO_DINT(#length);   //Length of read Data
+	                #statState := #STATE_WRITE;
+	                #statBusy := TRUE;
+	                #statDone := FALSE;   //reset all the output parameters                                   
+	                #statError := FALSE;
+	                #tempStatus := #STATUS_NO_JOB;
+	                #statWriteOffset := 0;
+	                #statBytemove := 0;
+	                //next step >> send write command
+	            ELSE
+	                #tempStatus.%W0 := #STATUS_ERROR_STILL_ACTIVE;    //block is still active
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //Error identifier for block errors
+	                #statState := #STATE_ERROR;
+	            END_IF;
+	            IF #length < USINT_TO_WORD(#statIOsizeNetto) THEN
+	                #tempStatus.%W0 := #STATUS_ERROR_LENGTH;    //length too short
+	                #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //identifier rfid errors
+	                #tempStatus := #tempStatus;
+	                #statState := #STATE_ERROR;
+	            END_IF;
+	        END_IF;
+	    END_REGION
+	    #statExecuteReq := #execute;
+	END_REGION
+	
+	REGION Tag presence detection
+	    IF NOT #statPresence AND #statPresence <> #statPresenceFf THEN    //the tag has left the antenna  field
+	        IF NOT #statDone THEN
+	            #statTimerIn := true;   //wait 5 sec
+	            #statTimerR := false;
+	        END_IF;
+	    END_IF;
+	    #statPresenceFf := #statPresence;
+	    IF #statPresence THEN
+	        #statTimerR := true;
+	        #statTimerIn := false;
+	    END_IF;
+	END_REGION
+	
+	REGION State machine
+	    CASE #statState OF
+	        #STATE_IDLE:
+	            #statWriteOffset := 0;    //offset of puffer must be reseted
+	            #statBusy := false;
+	            #statTimerIn := false;
+	            
+	        #STATE_WRITE:
+	            IF #statLength > 0 THEN
+	                #statDat[#INDEX_CMD] := #CMD_WRITE;   //Set write command
+	                #statDat[#INDEX_ADDR_HIGH] := #statAddr.%B1;    //Adr-H
+	                #statDat[#INDEX_ADDR_LOW] := #statAddr.%B0;   //Adr-L
+	                VariantGet(SRC := #identData,
+	                           DST => #statWriteData);
+	                
+	                #statReturnMoveBlkVar := MOVE_BLK_VARIANT(SRC := #statWriteData,
+	                                                          COUNT := #statIOsizeNetto,
+	                                                          SRC_INDEX := #statWriteOffset - #statBytemove,
+	                                                          DEST_INDEX := #INDEX_SOURCE_DATA,
+	                                                          DEST => #statDat);
+	                //Just #statIOsizeNetto Bytes are reserved for every transfer
+	            END_IF;
+	            IF NOT #statIoPartError THEN
+	                #statState := #STATE_TELEGRAM;    //Telegram: Edit the read data
+	            END_IF;
+	            
+	        #STATE_TELEGRAM:
+	            IF #statLength > 0 THEN   //Only when length of data>0 can continue  
+	                IF #statStatusByte.%X6 THEN   //IF RFID error has occured
+	                    #tempStatus.%W0 := #statRecDat[#INDEX_RFID_ERROR];
+	                    #tempStatus.%W1 := #STATUS_ERROR_IDENT_RFID;    //Error identifier for RFID errors
+	                    #statState := #STATE_ERROR;
+	                END_IF;
+	                
+	                //-------------------------- write command is ready------------------------------------------------//
+	                IF #statStatusByte.%X7 AND #statStatusByte.%X0 THEN
+	                    IF #statRecDat[#INDEX_ADDR_HIGH] = #statAddr.%B1 AND #statRecDat[#INDEX_ADDR_LOW] = #statAddr.%B0 THEN //received ADR must be ==sent ADR
+	                        
+	                        IF NOT #statIoPartError THEN
+	                            IF #statStatusByte.%X7 AND NOT #statStatusByte.%X6 THEN
+	                                #statLength := #statLength - #statIOsizeNetto;
+	                                IF #statDiffToIOsizeNetto <> 0 AND #statLength < #statIOsizeNetto THEN
+	                                    #statBytemove := #statIOsizeNetto - #statDiffToIOsizeNetto;
+	                                END_IF;
+	                                //if len is not dividable with #statIOsizeNetto the adr offset has to be changed that the last (length < #statIOsizeNetto) command is done right
+	                                #statWriteOffset := #statWriteOffset + #statIOsizeNetto;                                   //offset must be changed
+	                                #statAddr := INT_TO_WORD(WORD_TO_INT(#statAddr) + USINT_TO_INT(#statIOsizeNetto) - #statBytemove);     //Change the ADR on Transponder(#statIOsizeNetto Bytes)       
+	                                #statState := #STATE_WRITE;                      //Start a new write command
+	                            ELSE
+	                                #statState := #STATE_IDLE;
+	                            END_IF;
+	                        ELSE
+	                            #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);    //Error has to BLKMOV occured
+	                            #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //functions-Error identifier
+	                            #statState := #STATE_ERROR;
+	                        END_IF;
+	                    END_IF;
+	                END_IF;
+	                
+	                #instSetIoPart(ID := #hwID,
+	                               OFFSET := #portAddr,
+	                               LEN := #statIOsize,
+	                               STATUS => #statIoPartStatus,
+	                               ERROR => #statIoPartError,
+	                               OUTPUTS := #statDat);
+	                
+	                IF #statIoPartError THEN
+	                    #tempStatus.%W0 := DWORD_TO_WORD(#statIoPartStatus);   //Error has to BLKMOV occured
+	                    #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //functions-Error identifier
+	                    #statState := #STATE_ERROR;
+	                END_IF;
+	                
+	            ELSE
+	                #statState := #STATE_IDLE;
+	                #statBusy := false;
+	                #statDone := TRUE;
+	                
+	                //Reset write command
+	                #statDat[#INDEX_CMD] := #CMD_RESET;
+	                
+	                #instSetIoPart(ID := #hwID,
+	                               OFFSET := #portAddr,
+	                               LEN := #statIOsize,
+	                               STATUS => #statIoPartStatus,
+	                               ERROR => #statIoPartError,
+	                               OUTPUTS := #statDat);
+	            END_IF;
+	            
+	        #STATE_ERROR:
+	            #statError := TRUE;
+	            #statBusy := false;
+	            #statDone := false;
+	            #statTimerIn := false;
+	            #statTimerR := true;
+	            #statState := #STATE_IDLE;
+	            
+	            //Reset write command
+	            #statDat[#INDEX_CMD] := #CMD_RESET;
+	            
+	            #instSetIoPart(ID := #hwID,
+	                           OFFSET := #portAddr,
+	                           LEN := #statIOsize,
+	                           STATUS => #statIoPartStatus,
+	                           ERROR => #statIoPartError,
+	                           OUTPUTS := #statDat);
+	        ELSE
+	            #statState := #STATE_IDLE;
+	    END_CASE;
+	END_REGION
+	
+	REGION Detection timer
+	    #instTonR(IN := #statTimerIn,   //this timer will start, if the tag has left the antenna field
+	              R := #statTimerR,
+	              PT := #statTimerPt);
+	    IF #instTonR.Q THEN   //error has occured. No tag on field during the 5 sec.
+	        #tempStatus.%W0 := #STATUS_ERROR_TAG_HAS_LEFT;  //tag has left the field
+	        #tempStatus.%W1 := #STATUS_ERROR_IDENT_BLOCK;   //identifier rfid errors
+	        #statState := #STATE_ERROR;
+	    END_IF;
+	END_REGION
+	
+	REGION Update output interface 
+	    #done := #statDone;
+	    #busy := #statBusy;
+	    #error := #statError;
+	    #status := #tempStatus;
+	    #presence := #statPresence;
+	END_REGION
+	
+END_FUNCTION_BLOCK
+

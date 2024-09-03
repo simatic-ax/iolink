@@ -37,3 +37,8 @@ files:
   - 'docs'
   - 'src'
   - 'snippets'
+dependencies:
+  "@ax/system-timer": ^7.0.17
+  "@ax/simatic-1500-distributedio": ^7.0.1
+  "@simatic-ax/conversion": ^2405.0.0
+  "@ax/system-serde": ^7.0.17

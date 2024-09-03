@@ -1,0 +1,54 @@
+﻿TYPE "LIOLink_typePortEventQualifier"
+TITLE = LIOLink_typePortEventQualifier
+VERSION : 0.1
+//EventQualifier: Instance, Source, Type, Mode
+   STRUCT
+      instance { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // 0: Unknown / 1-3: Reserved / 4: Application / 5-7: Reserved
+      source { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // (default) FALSE: Device (remote) / TRUE: Master/Port
+      "type" { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // 0: Reserved / 1: Notification / 2: Warning / 3: Error
+      mode { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // 0: Reserved / 1: Event single shot / 2: Event disappears / 3: Event appears
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_typePortEventCodes"
+TITLE = LIOLink_PortEventCodes
+VERSION : 0.1
+//UDT for Event Information: eventCode, eventQualifier
+   STRUCT
+      eventCode : Word;   // IO-Link EventCode
+      eventQualifier { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_typePortEventQualifier";   // IO-Link EventQualifier
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_typeDiagnostics"
+VERSION : 0.1
+   STRUCT
+      status { ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Status of the Block or error identification when error occurred
+      subfunctionStatus { ExternalVisible := 'False'; ExternalWritable := 'False'} : DWord;   // Status or return value of called FB's, FCs and system blocks
+      stateNumber { ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // State in the state machine of the block where the error occurred
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_typePortEvents"
+TITLE = LIOLink_PortEvents
+VERSION : 0.1
+//Events of a port
+   STRUCT
+      event : Array[0..4] of "LIOLink_typePortEventCodes";   // Events of a port
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_typeEvents"
+TITLE = LIOLink_Events
+VERSION : 0.1
+//Events of each port of a IO-Link-Master
+   STRUCT
+      port : Array[1..8] of "LIOLink_typePortEvents";   // Ports of IO-Link-Master
+   END_STRUCT;
+
+END_TYPE
+

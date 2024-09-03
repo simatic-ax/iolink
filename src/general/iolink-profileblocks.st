@@ -1,3 +1,5 @@
+USING Siemens.Simatic.S71500.DistributedIO;
+USING Simatic.Ax.Conversion;
 NAMESPACE Simatic.Ax.IOLink
 FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
   /// LIOLink_AdjSwitchingSensor
@@ -8,7 +10,7 @@ FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
    VAR_INPUT 
       execute : Bool;   // Execute selected function
       hwID : HW_IO;   // Hardware identifier of IO-Link master module (sub module for ET 200eco PN)
-      cap : Int := 227;   // Client Access Point; 0xB400 for ET 200eco PN, CM 8x IO-Link, else 0xE003 (227)
+      cap : Int := 227;   // Client Access Point; 0xB400 for ET 200eco PN, CM 8x IO-Link, else 0x00E3 (227)
       port : Int;   // Port on IO-Link master module
       backupEnable : Bool;   // TRUE: Data storage enabled, FALSE: disabled
       functionCmd : Int;   // 0: no_func, 1: rd_all, 2: wr_conf, 3: wr_param, 4: teach
@@ -188,7 +190,7 @@ FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
 	    instDevice(execute   := FALSE,
 	                hwID      := hwID,
 	                cap       := cap,
-	                readWrite := 0,
+	                readWrite := FALSE,
 	                port    := port,
 	                index     := 0,
 	                subindex  := 0,
@@ -582,7 +584,7 @@ FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
 	                          record  := statRwRecordIOLData);
 	              
 	              IF statIndexRead >= INDEX_SSC_CONFIG THEN
-	                logicOut := TO_BOOL(statRwRecordIOLData[0] AND 2#00000001);
+	                logicOut := TO_BOOL(statRwRecordIOLData[0] AND BYTE#2#00000001);
 	                
 	                IF backupEnable AND functionCmd = FUNC_TEACH THEN
 	                  statFBState := FB_STATE_BACKUP;
@@ -660,7 +662,7 @@ FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
 	        // REGION param download store
 	          IF statFBState = FB_STATE_BACKUP THEN
 	            statStatus := STATUS_BUSY_BACKUP; // Busy backup
-	            statRwRecordIOLData[0] := 16#05;
+	            statRwRecordIOLData[0] := BYTE#16#05;
 	            
 	            instDevice(execute   := TRUE,
 	                        readWrite := MODE_WRITE,
@@ -758,7 +760,6 @@ FUNCTION_BLOCK LIOLink_AdjSwitchingSensor
 	    // Needed to detect rising edge at inputs
 	    statTeachRequestOld := teachRequest;
 	    
-	    ENO := NOT statError;
 	  // END_REGION Write static values to outputs
 	// END_REGION OUTPUTS
 END_FUNCTION_BLOCK
@@ -980,19 +981,19 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	            IF instDevice.done THEN
 	              // Set all list elements to 0
 	              FOR tempCount := 0 TO 31 BY 1 DO
-	                profileIDList[tempCount] := 0;
-	                functionClassIDList[tempCount] := 0;
+	                profileIDList[tempCount] := UINT#0;
+	                functionClassIDList[tempCount] := UINT#0;
 	              END_FOR;
 	              
 	              // Split PROFILE_CHARACTERISTICS (0x000D) into PROFIL_ID and FUNCTION_CLASS_ID
 	              FOR tempCount := 0 TO instDevice.readLen BY 2 DO
 	                tempProfile.%B0 := statRwRecordIOLData[tempCount + 1];
 	                tempProfile.%B1 := statRwRecordIOLData[tempCount];
-	                IF tempProfile > 16#0000 AND tempProfile < 16#7FFF THEN
+	                IF tempProfile > WORD#16#0000 AND tempProfile < WORD#16#7FFF THEN
 	                  profileIDList[tempIndex_Profile_Id] := TO_UINT(tempProfile);
 	                  tempIndex_Profile_Id := tempIndex_Profile_Id + (1);
 	                  
-	                ELSIF tempProfile >= 16#8000 AND tempProfile < 16#C000 THEN
+	                ELSIF tempProfile >= WORD#16#8000 AND tempProfile < WORD#16#C000 THEN
 	                  functionClassIDList[tempIndex_Function_Class_Id] := TO_UINT(tempProfile);
 	                  tempIndex_Function_Class_Id := tempIndex_Function_Class_Id + (1);
 	                END_IF;
@@ -1009,7 +1010,7 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	            
 	            // Clear Buffer
 	            FOR tempCount := 0 TO instDevice.readLen BY 1 DO
-	              statRwRecordIOLData[tempCount] := 0;
+	              statRwRecordIOLData[tempCount] := BYTE#0;
 	            END_FOR;
 	            
 	            instDevice(execute  := TRUE,
@@ -1113,7 +1114,7 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	            
 	            IF instDevice.done THEN
 	              deviceStatus := statRwRecordIOLData[0];
-	              IF deviceStatus = 0 THEN
+	              IF deviceStatus = BYTE#0 THEN
 	                deviceOK := TRUE;
 	              ELSE
 	                deviceOK := FALSE;
@@ -1134,7 +1135,7 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	            IF instDevice.done THEN
 	              // Clear old values of #DetailedDeviceStatus
 	              FOR tempCount := 0 TO 63 DO
-	                detailedDeviceStatus[tempCount] := 0;
+	                detailedDeviceStatus[tempCount] := DWORD#0;
 	              END_FOR;
 	              
 	              FOR tempCount := 0 TO instDevice.readLen BY 3 DO
@@ -1167,8 +1168,8 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	                            Cnt    => statWriteLength,
 	                            Chars  := statRwRecordIOLData);
 	            INDEX_BACKUP:
-	              statRwRecordIOLData[0] := 16#05;
-	              statWriteLength := 1;
+	              statRwRecordIOLData[0] := BYTE#16#05;
+	              statWriteLength := UINT#1;
 	              
 	            ELSE // Statement section ELSE -> Internal Error: Not defined
 	              statStatus := ERR_WRONG_HANDLING;
@@ -1218,8 +1219,8 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	    
 	    IF statFBSubstate = FB_SUBSTATE_PROFILE_CHARACTERISTIC THEN
 	      FOR tempCount := 0 TO 31 BY 1 DO
-	        profileIDList[tempCount] := 0;
-	        functionClassIDList[tempCount] := 0;
+	        profileIDList[tempCount] := UINT#0;
+	        functionClassIDList[tempCount] := UINT#0;
 	      END_FOR;
 	      
 	      statFBSubstate := FB_SUBSTATE_IDENT_OBJECTS;
@@ -1265,13 +1266,13 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	      
 	    ELSIF statFBSubstate = FB_SUBSTATE_DEVICE_STATUS THEN
 	      // Set default value
-	      deviceStatus := 0;
+	      deviceStatus := BYTE#0;
 	      statFBSubstate := FB_SUBSTATE_DETAILED_DEVICE_STATUS;
 	      
 	    ELSIF statFBSubstate = FB_SUBSTATE_DETAILED_DEVICE_STATUS THEN
 	      // Set default value
 	      FOR tempCount := 0 TO 63 DO
-	        detailedDeviceStatus[tempCount] := 0;
+	        detailedDeviceStatus[tempCount] := DWORD#0;
 	      END_FOR;
 	      
 	      statStatus := STATUS_EXECUTION_FINISHED;
@@ -1345,7 +1346,6 @@ FUNCTION_BLOCK LIOLink_IdentAndDiag
 	    busy := statBusy;
 	    error := statError;
 	    status := statStatus;
-	    ENO := NOT statError;
 	  // END_REGION write static values to outputs
 	// END_REGION OUTPUTS
 	
@@ -1356,7 +1356,9 @@ FUNCTION_BLOCK LIOLink_MeasuredDataChannel
   // Author : SUP_Applications
   // Family : LIOLink
   // Version : 1.0
-//The Measurement Data Channel defines the Process Data structure, functions and representation of measuring sensors. This Function Block provides derived status signals and defines a standardized interface for user application programs. If this FB is migrated to another automation system, than the input measurementValue of type Variant probably has to be replaced by a suitable alternative. 
+//The Measurement Data Channel defines the Process Data structure, functions and representation of measuring sensors. 
+//This Function Block provides derived status signals and defines a standardized interface for user application programs. 
+//If this FB is migrated to another automation system, than the input measurementValue of type Variant probably has to be replaced by a suitable alternative. 
    VAR_INPUT 
       profileID : Word;   // 1 = SSP 3.1; 2 = SSP 3.2; 3 = SSP 3.3; 4 = SSP 3.4; 5 = SSP 4.1.x; 6 = SSP 4.2.x
       substituteValue : DInt;   // This value is applied at the outputs ValueReal and Val-ueDINT if ValueStatus is not equal 0
@@ -1388,14 +1390,14 @@ FUNCTION_BLOCK LIOLink_MeasuredDataChannel
    VAR CONSTANT 
       LOWER_LIMIT_INT : Int := -32768;   // Value which represents lower limit of 16 bit measurement value
       UPPER_LIMIT_INT : Int := 32767;   // Value which represents upper limit of 16 bit measurement value
-      LOWER_LIMIT_DINT : DInt := -2147482880;   // Value which represents lower limit of 32 bit measurement value
-      UPPER_LIMIT_DINT : DInt := 2147482880;   // Value which represents upper limit of 32 bit measurement value
+      LOWER_LIMIT_DINT : DInt := DINT#-2147482880;   // Value which represents lower limit of 32 bit measurement value
+      UPPER_LIMIT_DINT : DInt := DINT#2147482880;   // Value which represents upper limit of 32 bit measurement value
       OUT_OF_RANGE_NEG_INT : Int := 16#8008;   // Value which represents that 16 bit measurement value is out of range (-)
       OUT_OF_RANGE_POS_INT : Int := 16#7FF8;   // Value which represents that 16 bit measurement value is out of range (+)
-      OUT_OF_RANGE_NEG32 : DInt := 16#80000008;   // Value which represents that 32 bit measurement value is out of range (-)
-      OUT_OF_RANGE_POS32 : DInt := 16#7FFFFFF8;   // Value which represents that 32 bit measurement value is out of range (+)
+      OUT_OF_RANGE_NEG32 : DInt := DINT#16#80000008;   // Value which represents that 32 bit measurement value is out of range (-)
+      OUT_OF_RANGE_POS32 : DInt := DINT#16#7FFFFFF8;   // Value which represents that 32 bit measurement value is out of range (+)
       NO_MEASUREMENT_DATA16 : Int := 16#7FFC;   // Value which represents that IOL_Device cannot provide a 16 bit measurement value
-      NO_MEASUREMENT_DATA32 : DInt := 16#7FFFFFFC;   // Value which represents that IOL_Device cannot provide a 32 bit measurement value
+      NO_MEASUREMENT_DATA32 : DInt := DINT#16#7FFFFFFC;   // Value which represents that IOL_Device cannot provide a 32 bit measurement value
       VAL_STAT_OK : Int := 0;   // Value for Status = OK
       VAL_STAT_PD_INVALID : Int := 1;   // Value for Status = Process Data invalid
       VAL_STAT_NO_DATA : Int := 2;   // Value for Status = No Data
@@ -1446,17 +1448,17 @@ FUNCTION_BLOCK LIOLink_MeasuredDataChannel
 	// REGION Init outputs
 	    error := FALSE;
 	    status := STATUS_READY_TO_START;
-	    SSCn1 := 0;
-	    SSCn2 := 0;
+	    SSCn1 := FALSE;
+	    SSCn2 := FALSE;
 	// END_REGION
 	
 	// REGION Init temp variables
-	    iScale := 0;
-	    byScale := 0;
-	    iMeasurementValue := 0;
-	    wMeasurementValue := 0;
-	    diMeasurementValue := 0;
-	    dwMeasurementValue := 0;
+	    iScale := SINT#0;
+	    byScale := BYTE#0;
+	    iMeasurementValue := INT#0;
+	    wMeasurementValue := WORD#0;
+	    diMeasurementValue := DINT#0;
+	    dwMeasurementValue := DWORD#0;
 	// END_REGION
 	
 	IF qualifier = FALSE THEN
@@ -1469,19 +1471,19 @@ FUNCTION_BLOCK LIOLink_MeasuredDataChannel
 	  //SSP 3.1 or 3.3 or 4.1.x
 	    IF (profileID = PROFILID_SSP1 OR profileID = PROFILID_SSP3 OR profileID = PROFILID_SSP5) THEN
 	        // REGION 16-bit measurement value 
-	            wMeasurementValue := PEEK_WORD(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress);
+	            wMeasurementValue := PEEK_WORD(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress);
 	            iMeasurementValue := TO_INT(wMeasurementValue);
-	            byScale := PEEK(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 2);
+	            byScale := PEEK(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 2);
 	            iScale := TO_SINT(byScale);
 	            
 	            IF profileID = PROFILID_SSP5 THEN
-	                SSCn1 := PEEK_BOOL(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 3, bitOffset := 0);
-	                SSCn2 := PEEK_BOOL(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 3, bitOffset := 1);
+	                SSCn1 := PEEK_BOOL(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 3, bitOffset := 0);
+	                SSCn2 := PEEK_BOOL(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 3, bitOffset := 1);
 	            END_IF;
 	            
 	            IF LOWER_LIMIT_INT <= iMeasurementValue AND iMeasurementValue <= UPPER_LIMIT_INT THEN
 	                valueDInt := iMeasurementValue;
-	                valueReal := TO_REAL(iMeasurementValue) * (10 ** TO_REAL(iScale));
+	                valueReal := TO_REAL(iMeasurementValue) * (REAL#10.0 ** TO_REAL(iScale));
 	                valueStatus := VAL_STAT_OK;
 	                valid := TRUE;
 	                
@@ -1507,19 +1509,19 @@ FUNCTION_BLOCK LIOLink_MeasuredDataChannel
 	    //SSP 3.2 or 3.4 or 4.2.x
 	ELSIF (profileID = PROFILID_SSP2 OR profileID = PROFILID_SSP4 OR profileID = PROFILID_SSP6) THEN
 	    // REGION 32-bit measurement value
-	        dwMeasurementValue := PEEK_DWORD(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress);
+	        dwMeasurementValue := PEEK_DWORD(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress);
 	        diMeasurementValue := TO_DINT(dwMeasurementValue);
-	        byScale := PEEK(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 4);
+	        byScale := PEEK(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 4);
 	        iScale := TO_SINT(byScale);
 	        
 	        IF profileID = PROFILID_SSP6 THEN
-	            SSCn1 := PEEK_BOOL(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 5, bitOffset := 0);
-	            SSCn2 := PEEK_BOOL(area := 16#81, dbNumber := 0, byteOffset := LogicStartAddress + 5, bitOffset := 1);
+	            SSCn1 := PEEK_BOOL(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 5, bitOffset := 0);
+	            SSCn2 := PEEK_BOOL(area := WORD#16#81, dbNumber := 0, byteOffset := LogicStartAddress + 5, bitOffset := 1);
 	        END_IF;
 	        
 	        IF LOWER_LIMIT_DINT <= diMeasurementValue AND diMeasurementValue <= UPPER_LIMIT_DINT THEN
 	            valueDInt := diMeasurementValue;
-	            valueReal := TO_REAL(diMeasurementValue) * (10 ** TO_REAL(iScale));
+	            valueReal := TO_REAL(diMeasurementValue) * (REAL#10.0 ** TO_REAL(iScale));
 	            valueStatus := VAL_STAT_OK;
 	            valid := TRUE;
 	            
@@ -1751,7 +1753,7 @@ FUNCTION_BLOCK LIOLink_MultiAdjSwitchingSensor
 	        instDevice(execute := FALSE,
 	                    hwID := hwID,
 	                    cap := cap,
-	                    readWrite := 0,
+	                    readWrite := FALSE,
 	                    port := port,
 	                    index := 0,
 	                    subindex := 0,
@@ -2145,7 +2147,7 @@ FUNCTION_BLOCK LIOLink_MultiAdjSwitchingSensor
 	                                        record := statRwRecordIOLData);
 	                            
 	                            IF statIndexRead >= INDEX_SSC_CONFIG THEN
-	                                logicOut := TO_BOOL(statRwRecordIOLData[0] AND 2#00000001);
+	                                logicOut := TO_BOOL(statRwRecordIOLData[0] AND BYTE#2#00000001);
 	                                
 	                                IF backupEnable AND functionCmd = FUNC_TEACH THEN
 	                                    statFBState := FB_STATE_BACKUP;
@@ -2232,7 +2234,7 @@ FUNCTION_BLOCK LIOLink_MultiAdjSwitchingSensor
 	                // REGION param download store
 	                    IF statFBState = FB_STATE_BACKUP THEN
 	                        statStatus := STATUS_BUSY_BACKUP; // Busy backup
-	                        statRwRecordIOLData[0] := 16#05;
+	                        statRwRecordIOLData[0] := BYTE#16#05;
 	                        
 	                        instDevice(execute := TRUE,
 	                                    readWrite := MODE_WRITE,
@@ -2330,7 +2332,6 @@ FUNCTION_BLOCK LIOLink_MultiAdjSwitchingSensor
 	        // Needed to detect rising edge at inputs
 	        statTeachRequestOld := teachRequest;
 	        
-	        ENO := NOT statError;
 	    // END_REGION Write static values to outputs
 	// END_REGION OUTPUTS
 END_FUNCTION_BLOCK

@@ -1,0 +1,179 @@
+﻿TYPE "LIOLink_3RB24_typeDiag"
+TITLE = LIOLink_3RB24_typeDiag
+VERSION : 0.1
+//Data set (index) 94 (measured values) - solid-state overload relay for IO‑Link
+   STRUCT
+      ready : Bool;   // Ready
+      directionClockwise : Bool;   // Motor direction of rotation 1 (clockwise)
+      directionCounterClockwise : Bool;   // Motor direction of rotation 2 (counter-clockwise)
+      reserved { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      switchingElementDefect : Bool;   // Switching element defective
+      reserved1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      groupError : Bool;   // GroupError
+      generalWarning : Bool;   // General warning
+      reserved2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      thermistorOverload : Bool;   // Thermistor overload
+      thermistorWireBreak : Bool;   // Thermistor wire break
+      thermistorShortCircuit : Bool;   // Thermistor short-circuit
+      thermistorMotorOverload : Bool;   // Thermal motor model overload
+      overloadTripping : Bool;   // Overload tripping
+      reserved3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      reserved7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved9 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved10 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved11 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      resCurrenctDetected : Bool;   // Residual current detected
+      resCurrentTripping : Bool;   // Residual current tripping
+      reserved12 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved13 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      groudFaultDetected : Bool;   // Ground fault detected
+      GroundFaultTripping : Bool;   // Ground fault tripping
+      reserved14 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved15 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved16 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved17 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved18 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      supplyVoltageLow : Bool;   // Electronics supply voltage too low
+      reserved19 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved20 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      autoMode1 : Bool;   // Automatic mode
+      autoMode2 : Bool;   // Automatic mode
+      manualModeOP1 : Bool;   // Manual mode (operator panel)
+      manualModeOP2 : Bool;   // Manual mode (operator panel)
+      manualModeConAbort : Bool;   // Manual mode connection abort (operator panel)
+      processImageError : Bool;   // Process image error
+      reserved21 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      selfTestActive1 : Bool;   // Self-test active
+      selfTestActive2 : Bool;   // Self-test active
+      selfTestError : Bool;   // Self-test error
+      reserved22 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved23 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved24 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved25 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved26 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved27 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Reserved
+      reserved28 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved29 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      impermissibleSetting : Bool;   // Impermissible Ie/CLASS setting
+      presetActualCompare : Bool;   // Preset <> actual configuration
+      thermistorProtectionDeactivated : Bool;   // Thermistor protection deactivated
+      reserved30 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved31 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved32 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved33 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      coldStartActive : Bool;   // Cold start active
+      coldStartTripping : Bool;   // Cold start tripping
+      reserved34 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved35 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved36 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved37 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved38 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved39 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved40 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      reserved41 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[16..23] of Byte;   // Reserved
+      reserved42 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved43 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved44 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      motorHeatingExceeded : Bool;   // Prewarning limit: Motor heating exceeded
+      reserved45 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved46 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved47 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved48 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved49 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved - Extension to get even field
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_3RB24_typeMeasure"
+TITLE = LIOLink_3RB24_typeMeasure
+VERSION : 0.1
+//Data set (index) 94 (measured values) - solid-state overload relay for IO‑Link
+   STRUCT
+      phaseCurrentL1Rel : Byte;   // Phase current I (L1 rms in 3,125% steps) - A-4 Dataset Index 94 Page 112
+      phaseCurrentL2Rel : Byte;   // Phase current I (L2 rms in 3,125 % steps)
+      phaseCurrentL3Rel : Byte;   // Phase current I (L3 rms in 3,125 % steps)
+      reserved { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      reserved1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[4..27] of Byte;   // Reserved
+      phaseCurrentL1Abs : DWord;   // Phase current I (L1 rms in 0,01-A steps)
+      phaseCurrentL2Abs : DWord;   // Phase current I (L2 rms in 0,01-A steps)
+      phaseCurrentL3Abs : DWord;   // Phase current I (L3 rms in 0,01-A steps)
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_3RB24_typeTechFunctions"
+TITLE = TechnologyFunctions_3RB24
+VERSION : 0.1
+//Data set (index) 131 (technology functions) - solid-state overload relay for IO‑Link
+   STRUCT
+      reserved : Array[0..7] of Byte;   // Reserved
+      groundFaultDetection : Byte;   // Ground fault detection - 16#00: Disable; 16#20: Enable - Bit 5 in Byte
+      reserved8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Reserved
+      coldStart : Byte;   // Cold Start -  16#00: Disable; 16#08: Enable - Bit 3 in Byte
+      ratedOpCurrent : DWord;   // Rated operational current (in 0.01 A steps)
+      reserved16 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Reserved
+      responseToOverloadMotor : Byte;   // Response to overload - thermal motor model - 16#00: Tripping without restart (MAN); 16#01: Tripping with restart (AUTO)
+      tripClass : Byte;   // Trip class - 16#03: CLASS 5; 16#00: CLASS 10; 16#01: CLASS 20; 16#02: CLASS 30
+      reserved17 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DWord;   // Reserved
+      responseToOverloadThermistor : Bool;   // Response to overload - Thermistor - false: Tripping without restart (MAN); true: Tripping with restart (AUTO)
+      reserved18 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved19 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved20 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved21 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved22 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved23 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      monitorThermistor : Bool;   // Thermistor - monitoring - false: No; true: Yes
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_3RB24_typePresetConfig"
+TITLE = TargetConfiguration_3RB24
+VERSION : 0.1
+//Data set (index) 130 (target configuration) - operator panel
+   STRUCT
+      reserverd { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..17] of Byte;   // Reserved
+      reserved1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      reserved6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Reserved
+      operationAtTarget : Bool;   // Operation at Preset <> Actual Configuration
+      operationPanelAvailable : Bool;   // Operator panel available
+      reserved7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      reserved8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+      reserved9 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Byte;   // Reserved
+   END_STRUCT;
+
+END_TYPE
+
+TYPE "LIOLink_3RB24_typeAll"
+TITLE = LIOLink_3RB24_typeAll
+VERSION : 0.1
+//Contains all the information about 3RB24
+   STRUCT
+      parameterPage0 { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_typeParameterPage0";   // ID0: Parameter page 0
+      vendorName { ExternalWritable := 'False'} : String[10];   // ID16: Vendor name
+      vendorText { ExternalWritable := 'False'} : String[64];   // ID17: Vendor text
+      productName { ExternalWritable := 'False'} : String[30];   // ID18: Product name
+      productID { ExternalWritable := 'False'} : String[12];   // ID19: Product ID
+      productText { ExternalWritable := 'False'} : String[2];   // ID20: Product text
+      serialNumber { ExternalWritable := 'False'} : String[8];   // ID21: Serial number
+      hwRevision { ExternalWritable := 'False'} : String[4];   // ID22: Hardware revision
+      fwRevision { ExternalWritable := 'False'} : String[4];   // ID23: Firmware revision
+      appSpecificName : String[32];   // ID24: Application specific name
+      processInput { ExternalWritable := 'False'} : Word;   // ID40: Process data input
+      processOutput { ExternalWritable := 'False'} : Byte;   // ID41: Process data output
+      diagnostics { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_3RB24_typeDiag";   // ID92: Diagnostics
+      measuredValues { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_3RB24_typeMeasure";   // ID94: Measurement values
+      presetConfig { S7_SetPoint := 'False'} : "LIOLink_3RB24_typePresetConfig";   // ID130: Preset configuration
+      techFunctions { ExternalWritable := 'False'; S7_SetPoint := 'False'} : "LIOLink_3RB24_typeTechFunctions";   // ID131: Technology functions
+   END_STRUCT;
+
+END_TYPE
+
