@@ -10,7 +10,8 @@
       "@ax/system-timer": "^7.0.17",
       "@ax/simatic-1500-distributedio": "^7.0.1",
       "@simatic-ax/conversion": "^2405.0.0",
-      "@ax/system-serde": "^7.0.17"
+      "@ax/system-serde": "^7.0.17",
+      "@ax/simatic-1500-hardware-utilities": "^1.0.5"
     },
     "devDependencies": {
       "@ax/sdk": "2405.0.0",
@@ -84,6 +85,13 @@
       "dependencies": {
         "@ax/system-strings": "7.0.17"
       }
+    },
+    "@ax/simatic-1500-hardware-utilities": {
+      "name": "@ax/simatic-1500-hardware-utilities",
+      "version": "1.0.5",
+      "integrity": "sha512-zqZYGIpnR4ADuGUF5lnmt5UEV3Hj59OqbcCHeMBiR9DrpwmuGNAktWm7MX3p9XQOF24gtgYR/XXKMBLyavqEkw==",
+      "resolved": "https://registry.simatic-ax.siemens.io/@ax/simatic-1500-hardware-utilities/-/simatic-1500-hardware-utilities-1.0.5.tgz",
+      "dependencies": {}
     },
     "@ax/apax-build": {
       "name": "@ax/apax-build",

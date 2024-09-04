@@ -38,7 +38,13 @@ files:
   - 'src'
   - 'snippets'
 dependencies:
+  #system packages
   "@ax/system-timer": ^7.0.17
-  "@ax/simatic-1500-distributedio": ^7.0.1
-  "@simatic-ax/conversion": ^2405.0.0
   "@ax/system-serde": ^7.0.17
+  #simatic-1500-specific system packages
+  "@ax/simatic-1500-hardware-utilities": ^1.0.5
+  "@ax/simatic-1500-distributedio": ^7.0.1
+  
+  #packages from simatic ax github community
+  "@simatic-ax/conversion": ^2405.0.0
+  
