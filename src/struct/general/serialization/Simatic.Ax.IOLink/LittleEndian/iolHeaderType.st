@@ -6,7 +6,7 @@ FUNCTION SerializeLittle : UDINT
         offset : UDINT;
     END_VAR
     VAR_IN_OUT
-        value : iolHeaderType;
+        value : LIOLINK_typeIOHeader;
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     SerializeLittle := offset;
@@ -22,7 +22,7 @@ FUNCTION DeserializeLittle : UDINT
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_IN_OUT
-        value : iolHeaderType;
+        value : LIOLINK_typeIOHeader;
     END_VAR
     DeserializeLittle := offset;
     DeserializeLittle := System.Serialization.DeserializeLittle(offset := DeserializeLittle, value := value.control, buffer := buffer);

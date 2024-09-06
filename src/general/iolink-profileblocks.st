@@ -50,7 +50,7 @@ NAMESPACE Simatic.Ax.IOLink
 		statFBErrorState     : DInt;                     // State in the state machine of the block where the error occurred
 		statEmptyDiagnostics : LIOLink_typeDiagnostics;  //  Empty diagnostics information (for initialization purposes only)
 		statTeachRequestOld  : Bool;                     // Used to check TeachRequest Input for rising edge
-		statRwRecordIOLData  : recordType;    // Buffer, used to work with IO_Link_Device
+		statRwRecordIOLData  : LIOLink_typeRecordData;    // Buffer, used to work with IO_Link_Device
 		instDevice           : LIOLink_Device;
 		statIndexRead        : Int;                      // Used to address the index which has to be read next
 		statLenRead          : Int;                      // Used to handle the length of the parameter which has to be read next
@@ -815,7 +815,7 @@ NAMESPACE Simatic.Ax.IOLink
 			statWriteLength      : UInt;                                     // Used to store the length of the Input Strings
 			statIdentObjectId    : Int;                                      // Current Id of  Array Ident_Object_Info
 			statIdentObjectInfo  : Array[0..11] of statIdentObjectInfoType;
-			statRwRecordIOLData  : recordType;                    // Buffer, used to work with IO_Link_Device
+			statRwRecordIOLData  : LIOLink_typeRecordData;                    // Buffer, used to work with IO_Link_Device
 			stat_Applspec_Tag_In : String[32];                               // Gets content of ApplicationSpecificTagIn at state_Init to prevent the unlucky case in which the input changes during write process
 			stat_Function_Tag_In : String[32];                               // Gets content of FunctionTagIn at state_Init to prevent the unlucky case in which the input changes during write process
 			stat_Location_Tag_In : String[32];                               // Gets content of LocationTagIn at state_Init to prevent the unlucky casein which the input changes during write process
@@ -1616,7 +1616,7 @@ NAMESPACE Simatic.Ax.IOLink
 			statFBErrorState     : DInt;                     // State in the state machine of the block where the error occurred
 			statEmptyDiagnostics : LIOLink_typeDiagnostics;  //  Empty diagnostics information (for initialization purposes only)
 			statTeachRequestOld  : Bool;                     // Used to check TeachRequest Input for rising edge
-			statRwRecordIOLData  : recordType;    // Buffer, used to work with IO_Link_Device
+			statRwRecordIOLData  : LIOLink_typeRecordData;    // Buffer, used to work with IO_Link_Device
 			instDevice           : LIOLink_Device;
 			statIndexRead        : Int;                      // Used to address the index which has to be read next
 			statLenRead          : Int;                      // Used to handle the length of the parameter which has to be read next

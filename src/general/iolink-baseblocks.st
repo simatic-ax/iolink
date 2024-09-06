@@ -29,7 +29,7 @@ NAMESPACE Simatic.Ax.IOLink
 		END_VAR
 
 		VAR_IN_OUT 
-			record : recordType;   // Data area for reading/writing data (max. 232 byte)
+			record : LIOLink_typeRecordData;   // Data area for reading/writing data (max. 232 byte)
 		END_VAR
 
 		VAR 
@@ -53,8 +53,8 @@ NAMESPACE Simatic.Ax.IOLink
 			instWrRec            : WriteRecord;                                       // System function "write data record"
 			instPoll             : System.Timer.Pulse;                                // poll rate read data record
 			instMonitor          : System.Timer.OnDelay;                              // request monitoring time
-			statRead             : statReadWriteType;
-			statWrite            : statReadWriteType;
+			statRead             : LIOLink_typeReadWrite;
+			statWrite            : LIOLink_typeReadWrite;
 			statBuffer           : Array[0..Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
 		END_VAR
 
@@ -65,7 +65,7 @@ NAMESPACE Simatic.Ax.IOLink
 			tempIndex       : Int;         // Temporary value for input 'index'
 			tempSubindex    : Int;         // Temporary value for input 'subindex'
 			tempIndexCounter: DInt;        // run tag for counting loops
-			tempEmptyRecord : recordType;
+			tempEmptyRecord : LIOLink_typeRecordData;
 		END_VAR
 
 		VAR CONSTANT 
@@ -930,7 +930,7 @@ NAMESPACE Simatic.Ax.IOLink
 			statEmptyDiagnostics : LIOLink_typeDiagnostics;                           // Empty diagnostics information (for initialization purposes only)
 			instRdRec            : ReadRecord;                                        // System function "read data record"
 			instWrRec            : WriteRecord;                                       // System function "write data record"
-			statRecStruct        : statRecStructType;
+			statRecStruct        : LIOLink_typeRecStruct;
 			statHwID             : HW_IO;                                             // Static value for input 'hwID'
 			statMode             : USInt;                                             // Static value for input 'mode'
 			statSegment          : DInt;                                              // current segment

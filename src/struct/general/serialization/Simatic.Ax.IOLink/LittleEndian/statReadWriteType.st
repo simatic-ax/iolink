@@ -6,7 +6,7 @@ FUNCTION SerializeLittle : UDINT
         offset : UDINT;
     END_VAR
     VAR_IN_OUT
-        value : statReadWriteType;
+        value : LIOLink_typeReadWrite;
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_TEMP
@@ -25,7 +25,7 @@ FUNCTION DeserializeLittle : UDINT
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_IN_OUT
-        value : statReadWriteType;
+        value : LIOLink_typeReadWrite;
     END_VAR
     VAR_TEMP
         i : DINT;

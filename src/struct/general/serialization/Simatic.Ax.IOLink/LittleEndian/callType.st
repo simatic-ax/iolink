@@ -6,7 +6,7 @@ FUNCTION SerializeLittle : UDINT
         offset : UDINT;
     END_VAR
     VAR_IN_OUT
-        value : callType;
+        value : LIOLink_typeReadWriteDataHeader;
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     SerializeLittle := offset;
@@ -21,7 +21,7 @@ FUNCTION DeserializeLittle : UDINT
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_IN_OUT
-        value : callType;
+        value : LIOLink_typeReadWriteDataHeader;
     END_VAR
     DeserializeLittle := offset;
     DeserializeLittle := System.Serialization.DeserializeLittle(offset := DeserializeLittle, value := value.extFunctionNum, buffer := buffer);

@@ -6,7 +6,7 @@ FUNCTION SerializeLittle : UDINT
         offset : UDINT;
     END_VAR
     VAR_IN_OUT
-        value : jobType;
+        value : LIOLink_typeJob;
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_TEMP
@@ -27,7 +27,7 @@ FUNCTION DeserializeLittle : UDINT
         buffer : ARRAY[*] OF BYTE;
     END_VAR
     VAR_IN_OUT
-        value : jobType;
+        value : LIOLink_typeJob;
     END_VAR
     VAR_TEMP
         i : DINT;
