@@ -1,13 +1,14 @@
 NAMESPACE Simatic.Ax.IOLink
 
 TYPE
-    FBState : WORD(
+    Status : WORD(
         STATUS_EXECUTION_FINISHED := WORD#16#0000,   // Execution finished without errors
         STATUS_NO_CALL            := WORD#16#7000,   // No job being currently processed
         STATUS_FIRST_CALL         := WORD#16#7001,   // First call after incoming new job (rising edge 'execute')
         STATUS_SUBSEQUENT_CALL    := WORD#16#7002,   // Subsequent call during active processing without further details
         STATUS_OFFSET_BACKUP      := WORD#16#7100,   // Offset for status during backup operation
         STATUS_OFFSET_RESTORE     := WORD#16#7200,   // Offset for status during restore operation
+        ERR_EXECUTION_ACTIVE      := WORD#16#8001,   // A command is already being executed
         ERR_UNKNOWN_MODULE        := WORD#16#80B0,   // unknown type of module, check subfunctionStatus
         ERR_UNKNOWN_MODE          := WORD#16#8200,   // Unknown mode
         ERR_ARRAY_UNSUPPORTED     := WORD#16#8201,   // Record array doesn't fit expected limits
@@ -30,12 +31,39 @@ TYPE
         SUB_STATUS_NO_ERROR := WORD#16#0000
     );
 
+
         Lengths : INT (
             RECORD := 232,
-            RECORD_WITH_HEADER := 240,
+            RECORD_HEADER := 8,
+            RECORD_WITH_HEADER := RECORD + RECORD_HEADER,
             PORT_EVENT_CODES := 5,
             PORT_EVENTS := 8
 
+        );
+
+        Control : BYTE(
+            CONTROL_WRITE               := BYTE#16#02,          // Write data record
+			CONTROL_READ                := BYTE#16#03          // Read data record
+        );
+
+        Cap : WORD(
+            CAP_LEGACY              := WORD#16#00E3,        // Siemens (old) Standard CAP: 227
+			CAP_STANDARD            := WORD#16#B400        // IO-Link Standard CAP: 16#B400
+        );
+
+        Limit : UINT (
+            MAX_PORT                  := USINT#63,           // Max. possible port
+			MAX_INDEX                 := UINT#32767,          // Max. possible index
+			INDEX_PORT_FUNC           := UINT#65535,          // Index to address port functions
+			MAX_SUBINDEX              := USINT#255           // Max. possible subindex
+        );
+
+        ClassDeviceState : DINT(
+            FB_STATE_NO_PROCESSING     := 0,
+            FB_STATE_PREPARE_WRITE     := 10,
+            FB_STATE_WRITE             := 1,
+            FB_STATE_POLL              := 2,
+            FB_STATE_READ_CAP          := 3
         );
 
 END_TYPE
