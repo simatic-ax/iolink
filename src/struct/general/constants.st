@@ -48,7 +48,8 @@ TYPE
 
         Cap : WORD(
             CAP_LEGACY              := WORD#16#00E3,        // Siemens (old) Standard CAP: 227
-			CAP_STANDARD            := WORD#16#B400        // IO-Link Standard CAP: 16#B400
+			CAP_STANDARD            := WORD#16#B400,       // IO-Link Standard CAP: 16#B400
+            INDEX_CAP_IOLINK        := WORD#16#B000        // Index of the data record for IOLM_Info. Only IO-Link-Masters with CAP=16#B000 support this call.
         );
 
         Limit : UINT (
@@ -58,13 +59,31 @@ TYPE
 			MAX_SUBINDEX              := USINT#255           // Max. possible subindex
         );
 
-        ClassDeviceState : DINT(
+        State : DINT(
             FB_STATE_NO_PROCESSING     := 0,
             FB_STATE_PREPARE_WRITE     := 10,
             FB_STATE_WRITE             := 1,
             FB_STATE_POLL              := 2,
-            FB_STATE_READ_CAP          := 3
+            FB_STATE_READ_CAP          := 3,
+            FB_STATE_ERROR             := 99
         );
+
+        BitmaskByte : BYTE (
+			BITMASK_ERR_RDREC_B3   := BYTE#16#DE,          // Status Code of RDREC in case of an error when reading a data record
+			BITMASK_ERR_RDREC_B2   := BYTE#16#80,          // Status Code of RDREC in case of an error when reading a data record - Error according to IEC 61158-6
+			BITMASK_ERR_RDREC_B1   := BYTE#16#B0          // Status Code of RDREC in case of an error when reading a data record - invalid index (cap)
+        );
+
+        BitmaskDWord : DWORD(
+            STATUS_MASK               := DWORD#16#00FF_FF00,  // Mask to filter error codes
+			STATUS_RESOURCE_BUSY      := DWORD#16#0080_C200  // Status from WRREC/RDREC: Resource is busy
+        );
+
+        ReadWriteRecordStatus : BYTE(
+            STATUS_RDREC_VALID    := BYTE#16#00          // Status Code of RDREC in cased of no error occurs
+        );
+
+        Mode : (NONE, READ, WRITE) := NONE;
 
 END_TYPE
 
