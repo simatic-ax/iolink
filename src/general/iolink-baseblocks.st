@@ -226,11 +226,11 @@ NAMESPACE Simatic.Ax.IOLink
 			IF statStatus = STATUS_FIRST_CALL THEN // Parameters OK
 				IF cap <> 0 THEN
 					statCap := TO_UINT(cap);
-					statFBState := FB_STATE_WRITE;
+					statFBState := FB_STATE_PREPARE_WRITE;
 				ELSIF (statCap <> TO_UINT(CAP_STANDARD) AND statCap <> TO_UINT(CAP_LEGACY)) OR (statHwIDprevious <> tempHwID) THEN // check if new device is connected => hwID changed
 					statFBState := FB_STATE_READ_CAP;
 				ELSE
-					statFBState := FB_STATE_WRITE;
+					statFBState := FB_STATE_PREPARE_WRITE;
 				END_IF;
 			END_IF;
 			// save current hwID
