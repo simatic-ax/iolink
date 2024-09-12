@@ -255,7 +255,7 @@ NAMESPACE Simatic.Ax.IOLink
 						instDevice(execute := FALSE,
 						record  := statRwRecordIOLData);
 
-						IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+						IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 							; // Keep trying until teach state of device is not busy
 						ELSE
 							CASE teachMode OF
@@ -297,7 +297,7 @@ NAMESPACE Simatic.Ax.IOLink
 				IF statFBState = FB_STATE_SINGLE_VAL_TEACH_IN THEN
 
 					// Teach SP
-					statRwRecordIOLData.Data[0] := TICMD_TEACH_SP;
+					statRwRecordIOLData[0] := TICMD_TEACH_SP;
 					instDevice(execute   := teachRequest AND NOT statTeachRequestOld AND teachFunction = TEACH_FUNCTION_1,
 					readWrite := MODE_WRITE,
 					index     := INDEX_SYS_CMD,
@@ -323,13 +323,13 @@ NAMESPACE Simatic.Ax.IOLink
 
 						IF teachFunction = TEACH_FUNCTION_1 THEN
 							// Teach Point 1
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_TP1;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_TP1;
 						ELSIF teachFunction = TEACH_FUNCTION_2 THEN
 							// Teach Point 2
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_TP2;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_TP2;
 						ELSIF teachFunction = TEACH_FUNCTION_APPLY THEN
 							// Teach Apply
-							statRwRecordIOLData.Data[0] := TICMD_APPLY;
+							statRwRecordIOLData[0] := TICMD_APPLY;
 						END_IF;
 						statFBSubState := FB_SUB_STATE_TWO_VAL_WRITE_COMMAND;
 					END_IF;
@@ -345,26 +345,26 @@ NAMESPACE Simatic.Ax.IOLink
 							record  := statRwRecordIOLData);
 
 							// Evaluate response from device
-							IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
-								(statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
+							IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
+								(statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
 							THEN
 								statStatus := STATUS_TEACH_TWO_BUSY;
 								statFBSubState := 0;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 								statStatus := STATUS_TEACH_TWO_WAITING;
 								statFBSubState := 0;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 								statStatus := STATUS_TEACH_TWO_BUSY;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 								statStatus := ERR_TEACH_DEVICE;
 							END_IF;
 
 							// Check if Teachpoints were successfuly acquired
-							IF (statRwRecordIOLData.Data[0] AND MASK_FLAG_TP1) = MASK_FLAG_TP1 THEN
+							IF (statRwRecordIOLData[0] AND MASK_FLAG_TP1) = MASK_FLAG_TP1 THEN
 								statTP1Teached := TRUE;
 							END_IF;
 
-							IF (statRwRecordIOLData.Data[0] AND MASK_FLAG_TP2) = MASK_FLAG_TP2 THEN
+							IF (statRwRecordIOLData[0] AND MASK_FLAG_TP2) = MASK_FLAG_TP2 THEN
 								statTP2Teached := TRUE;
 							END_IF;
 						END_IF;
@@ -384,7 +384,7 @@ NAMESPACE Simatic.Ax.IOLink
 								statFBSubState := FB_SUB_STATE_TWO_VAL_UPDATE_STATUS;
 								statMyPermitAbort := TRUE;
 
-							IF statRwRecordIOLData.Data[0] = TICMD_APPLY THEN
+							IF statRwRecordIOLData[0] = TICMD_APPLY THEN
 								statFBState := FB_STATE_CHECK_RESULT;
 								statStatus := STATUS_TEACH_APPLYING; // Busy, Teach process, apply action
 							END_IF;
@@ -395,7 +395,7 @@ NAMESPACE Simatic.Ax.IOLink
 						statMyPermitApply := TRUE;
 
 						IF applyAuto THEN
-							statRwRecordIOLData.Data[0] := TICMD_APPLY;
+							statRwRecordIOLData[0] := TICMD_APPLY;
 							statFBSubState := FB_SUB_STATE_TWO_VAL_WRITE_COMMAND;
 						END_IF;
 					END_IF;
@@ -411,10 +411,10 @@ NAMESPACE Simatic.Ax.IOLink
 
 						IF teachFunction = TEACH_FUNCTION_1 AND statMyPermitTeach1 THEN
 							// Start Teach
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_START;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_START;
 						ELSIF teachFunction = TEACH_FUNCTION_2 AND statMyPermitTeach2 AND statTeachStarted THEN
 							// Stop Teach
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_STOP;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_STOP;
 						END_IF;
 
 						statFBSubState := FB_SUB_STATE_DYNAMIC_WRITE_COMMAND;
@@ -423,7 +423,7 @@ NAMESPACE Simatic.Ax.IOLink
 					// Send Stop Teach Command if time is up
 					IF statTeachStarted AND teachTimer <> T#0ms AND instTimer.output = TRUE THEN
 						// Stop Teach
-						statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_STOP;
+						statRwRecordIOLData[0] := TICMD_TEACH_SP_STOP;
 						statFBSubState := FB_SUB_STATE_DYNAMIC_WRITE_COMMAND;
 					END_IF;
 
@@ -439,20 +439,20 @@ NAMESPACE Simatic.Ax.IOLink
 							record  := statRwRecordIOLData);
 
 							// Evaluate response from device
-							IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
-								(statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
+							IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
+								(statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
 							THEN // Idle and success are handled as error because wait for command is expected here
 								statStatus := ERR_TEACH_DEVICE;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 								statStatus := STATUS_TEACH_DYNAMIC_WAITING;
 								statFBSubState := 0;
 								statTeachStarted := TRUE;
 								statMyPermitTeach1 := FALSE;
 								statMyPermitTeach2 := TRUE;
 								statMyPermitAbort := TRUE;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 								statStatus := STATUS_TEACH_DYNAMIC_BUSY;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 								statStatus := ERR_TEACH_DEVICE;
 							ELSE
 								statStatus := ERR_TEACH_DEVICE;
@@ -471,7 +471,7 @@ NAMESPACE Simatic.Ax.IOLink
 							instDevice(execute := FALSE,
 							record  := statRwRecordIOLData);
 
-							IF statRwRecordIOLData.Data[0] = TICMD_TEACH_SP_START THEN
+							IF statRwRecordIOLData[0] = TICMD_TEACH_SP_START THEN
 								statFBSubState := FB_SUB_STATE_DYNAMIC_UPDATE_STATUS;
 
 								// Start Teach Timer
@@ -480,7 +480,7 @@ NAMESPACE Simatic.Ax.IOLink
 									signal := TRUE);
 								END_IF;
 
-							ELSIF statRwRecordIOLData.Data[0] = TICMD_TEACH_SP_STOP THEN
+							ELSIF statRwRecordIOLData[0] = TICMD_TEACH_SP_STOP THEN
 								statFBState := FB_STATE_CHECK_RESULT;
 								statStatus := STATUS_TEACH_APPLYING; // Busy, Teach process, apply action
 							END_IF;
@@ -508,9 +508,9 @@ NAMESPACE Simatic.Ax.IOLink
 						instDevice(execute := FALSE,
 						record  := statRwRecordIOLData);
 
-						IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+						IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 							; // Keep trying until teach state of device is not busy
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS) THEN
 							statMyPermitTeach1 := FALSE;
 							statMyPermitTeach2 := FALSE;
 							statMyPermitApply := FALSE;
@@ -519,9 +519,9 @@ NAMESPACE Simatic.Ax.IOLink
 							statFBState := FB_STATE_READ_ALL; // Go to read all
 							statIndexRead := INDEX_SSC_PARAM;
 							statLenRead := 2;
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 							statStatus := STATUS_TEACH_WAITING_APPLY;
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 							statStatus := ERR_TEACH_DEVICE;
 						END_IF;
 					END_IF;
@@ -546,7 +546,7 @@ NAMESPACE Simatic.Ax.IOLink
 					statStatus := STATUS_TEACH_ABORTING;
 
 					// Abort Teach-in sequence
-					statRwRecordIOLData.Data[0] := TICMD_TEACH_CANCEL;
+					statRwRecordIOLData[0] := TICMD_TEACH_CANCEL;
 					instDevice(execute   := TRUE,
 					readWrite := MODE_WRITE,
 					index     := INDEX_SYS_CMD,
@@ -587,7 +587,7 @@ NAMESPACE Simatic.Ax.IOLink
 						record  := statRwRecordIOLData);
 
 						IF statIndexRead >= INDEX_SSC_CONFIG THEN
-							logicOut := TO_BOOL(statRwRecordIOLData.Data[0] AND BYTE#2#00000001);
+							logicOut := TO_BOOL(statRwRecordIOLData[0] AND BYTE#2#00000001);
 
 							IF backupEnable AND functionCmd = FUNC_TEACH THEN
 								statFBState := FB_STATE_BACKUP;
@@ -596,8 +596,8 @@ NAMESPACE Simatic.Ax.IOLink
 							END_IF;
 
 						ELSE
-							tempSetpointOut.%B0 := statRwRecordIOLData.Data[1];
-							tempSetpointOut.%B1 := statRwRecordIOLData.Data[0];
+							tempSetpointOut.%B0 := statRwRecordIOLData[1];
+							tempSetpointOut.%B1 := statRwRecordIOLData[0];
 							setpointOut := TO_INT(tempSetpointOut);
 
 							// Read "Logic" after reading "Setpoint"
@@ -611,7 +611,7 @@ NAMESPACE Simatic.Ax.IOLink
 				// REGION write config
 				IF statFBState = FB_STATE_WRITE_CONF THEN
 					statStatus := STATUS_BUSY_WRITING; // Busy writing data
-					statRwRecordIOLData.Data[0] := TO_BYTE(logicIn);
+					statRwRecordIOLData[0] := TO_BYTE(logicIn);
 
 					instDevice(execute   := true,
 					readWrite := MODE_WRITE,
@@ -639,8 +639,8 @@ NAMESPACE Simatic.Ax.IOLink
 					statStatus := STATUS_BUSY_WRITING;
 
 					tempSetpointIn := TO_WORD(setpointIn);
-					statRwRecordIOLData.Data[1] := tempSetpointIn.%B0;
-					statRwRecordIOLData.Data[0] := tempSetpointIn.%B1;
+					statRwRecordIOLData[1] := tempSetpointIn.%B0;
+					statRwRecordIOLData[0] := tempSetpointIn.%B1;
 
 					instDevice(execute   := TRUE,
 					readWrite := MODE_WRITE,
@@ -665,7 +665,7 @@ NAMESPACE Simatic.Ax.IOLink
 				// REGION param download store
 				IF statFBState = FB_STATE_BACKUP THEN
 					statStatus := STATUS_BUSY_BACKUP; // Busy backup
-					statRwRecordIOLData.Data[0] := BYTE#16#05;
+					statRwRecordIOLData[0] := BYTE#16#05;
 
 					instDevice(execute   := TRUE,
 					readWrite := MODE_WRITE,
@@ -990,8 +990,8 @@ NAMESPACE Simatic.Ax.IOLink
 
 							// Split PROFILE_CHARACTERISTICS (0x000D) into PROFIL_ID and FUNCTION_CLASS_ID
 							FOR tempCount := 0 TO instDevice.readLen BY 2 DO
-								tempProfile.%B0 := statRwRecordIOLData.Data[tempCount + 1];
-								tempProfile.%B1 := statRwRecordIOLData.Data[tempCount];
+								tempProfile.%B0 := statRwRecordIOLData[tempCount + 1];
+								tempProfile.%B1 := statRwRecordIOLData[tempCount];
 								IF tempProfile > WORD#16#0000 AND tempProfile < WORD#16#7FFF THEN
 									profileIDList[tempIndex_Profile_Id] := TO_UINT(tempProfile);
 									tempIndex_Profile_Id := tempIndex_Profile_Id + (1);
@@ -1013,7 +1013,7 @@ NAMESPACE Simatic.Ax.IOLink
 
 						// Clear Buffer
 						FOR tempCount := 0 TO instDevice.readLen BY 1 DO
-							statRwRecordIOLData.Data[tempCount] := BYTE#0;
+							statRwRecordIOLData[tempCount] := BYTE#0;
 						END_FOR;
 
 						instDevice(execute  := TRUE,
@@ -1025,64 +1025,64 @@ NAMESPACE Simatic.Ax.IOLink
 							CASE statIdentObjectId OF
 								IDENT_OBJECTS_VENDOR_DEVICE_ID:
 									// Vendor_ID
-									identificationObjects.vendorID.%B0 := statRwRecordIOLData.Data[8];
-									identificationObjects.vendorID.%B1 := statRwRecordIOLData.Data[7];
+									identificationObjects.vendorID.%B0 := statRwRecordIOLData[8];
+									identificationObjects.vendorID.%B1 := statRwRecordIOLData[7];
 									// Device_ID
-									identificationObjects.deviceID.%B0 := statRwRecordIOLData.Data[11];
-									identificationObjects.deviceID.%B1 := statRwRecordIOLData.Data[10];
-									identificationObjects.deviceID.%B2 := statRwRecordIOLData.Data[9];
+									identificationObjects.deviceID.%B0 := statRwRecordIOLData[11];
+									identificationObjects.deviceID.%B1 := statRwRecordIOLData[10];
+									identificationObjects.deviceID.%B2 := statRwRecordIOLData[9];
 
-								IDENT_OBJECTS_VENDOR_NAME: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_VENDOR_NAME: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.vendorName);
 
-								IDENT_OBJECTS_VENDOR_TEXT: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_VENDOR_TEXT: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.vendorText);
 
-								IDENT_OBJECTS_PRODUCT_NAME: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_PRODUCT_NAME: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.productName);
 
-								IDENT_OBJECTS_PRODUCT_ID: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_PRODUCT_ID: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.productID);
 
-								IDENT_OBJECTS_PRODUCT_TEXT: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_PRODUCT_TEXT: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.productText);
 
-								IDENT_OBJECTS_SERIAL_NUMBER: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_SERIAL_NUMBER: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.serialNumber);
 
-								IDENT_OBJECTS_HARDWARE_REV: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_HARDWARE_REV: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.hwRevision);
 
-								IDENT_OBJECTS_FIRMWARE_REV: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_FIRMWARE_REV: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.fwRevision);
 
-								IDENT_OBJECTS_APPLSPEC_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_APPLSPEC_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.appSpecificTag);
 
-								IDENT_OBJECTS_FUNCTION_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_FUNCTION_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.functionTag);
 
-								IDENT_OBJECTS_LOCATION_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData.Data,
+								IDENT_OBJECTS_LOCATION_TAG_OUT: Chars_TO_Strg(Chars  := statRwRecordIOLData,
 									pChars := 0,
 									Cnt    := TO_UINT(instDevice.readLen),
 									Strg   => identificationObjects.locationTag);
@@ -1117,7 +1117,7 @@ NAMESPACE Simatic.Ax.IOLink
 							record   := statRwRecordIOLData);
 
 						IF instDevice.done THEN
-							deviceStatus := statRwRecordIOLData.Data[0];
+							deviceStatus := statRwRecordIOLData[0];
 							IF deviceStatus = BYTE#0 THEN
 								deviceOK := TRUE;
 							ELSE
@@ -1144,9 +1144,9 @@ NAMESPACE Simatic.Ax.IOLink
 							END_FOR;
 
 							FOR tempCount := 0 TO instDevice.readLen BY 3 DO
-								detailedDeviceStatus[tempCount / 3].%B0 := statRwRecordIOLData.Data[tempCount + 2];
-								detailedDeviceStatus[tempCount / 3].%B1 := statRwRecordIOLData.Data[tempCount + 1];
-								detailedDeviceStatus[tempCount / 3].%B2 := statRwRecordIOLData.Data[tempCount];
+								detailedDeviceStatus[tempCount / 3].%B0 := statRwRecordIOLData[tempCount + 2];
+								detailedDeviceStatus[tempCount / 3].%B1 := statRwRecordIOLData[tempCount + 1];
+								detailedDeviceStatus[tempCount / 3].%B2 := statRwRecordIOLData[tempCount];
 							END_FOR;
 
 							instDevice(execute := FALSE,
@@ -1163,17 +1163,17 @@ NAMESPACE Simatic.Ax.IOLink
 						INDEX_APPSPEC_TAG: Strg_TO_Chars(Strg   := stat_Applspec_Tag_In,
 							pChars := 0,
 							Cnt    => statWriteLength,
-							Chars  := statRwRecordIOLData.Data);
+							Chars  := statRwRecordIOLData);
 						INDEX_FUNCTION_TAG: Strg_TO_Chars(Strg   := stat_Function_Tag_In,
 							pChars := 0,
 							Cnt    => statWriteLength,
-							Chars  := statRwRecordIOLData.Data);
+							Chars  := statRwRecordIOLData);
 						INDEX_LOCATION_TAG: Strg_TO_Chars(Strg   := stat_Location_Tag_In,
 							pChars := 0,
 							Cnt    => statWriteLength,
-							Chars  := statRwRecordIOLData.Data);
+							Chars  := statRwRecordIOLData);
 						INDEX_BACKUP:
-							statRwRecordIOLData.Data[0] := BYTE#16#05;
+							statRwRecordIOLData[0] := BYTE#16#05;
 							statWriteLength := UINT#1;
 
 					ELSE // Statement section ELSE -> Internal Error: Not defined
@@ -1824,7 +1824,7 @@ NAMESPACE Simatic.Ax.IOLink
 						instDevice(execute := FALSE,
 							record := statRwRecordIOLData);
 
-						IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+						IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 							; // Keep trying until teach state of device is not busy
 						ELSE
 							CASE teachMode OF
@@ -1866,7 +1866,7 @@ NAMESPACE Simatic.Ax.IOLink
 				IF statFBState = FB_STATE_SINGLE_VAL_TEACH_IN THEN
 
 					// Teach SP
-					statRwRecordIOLData.Data[0] := TICMD_TEACH_SP;
+					statRwRecordIOLData[0] := TICMD_TEACH_SP;
 					instDevice(execute := teachRequest AND NOT statTeachRequestOld AND teachFunction = TEACH_FUNCTION_1,
 					readWrite := MODE_WRITE,
 					index := INDEX_SYS_CMD,
@@ -1892,13 +1892,13 @@ NAMESPACE Simatic.Ax.IOLink
 
 						IF teachFunction = TEACH_FUNCTION_1 THEN
 							// Teach Point 1
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_TP1;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_TP1;
 						ELSIF teachFunction = TEACH_FUNCTION_2 THEN
 							// Teach Point 2
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_TP2;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_TP2;
 						ELSIF teachFunction = TEACH_FUNCTION_APPLY THEN
 							// Teach Apply
-							statRwRecordIOLData.Data[0] := TICMD_APPLY;
+							statRwRecordIOLData[0] := TICMD_APPLY;
 						END_IF;
 						statFBSubState := FB_SUB_STATE_TWO_VAL_WRITE_COMMAND;
 					END_IF;
@@ -1914,26 +1914,26 @@ NAMESPACE Simatic.Ax.IOLink
 								record := statRwRecordIOLData);
 
 							// Evaluate response from device
-							IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
-								(statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
+							IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
+								(statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
 							THEN
 								statStatus := STATUS_TEACH_TWO_BUSY;
 								statFBSubState := 0;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 								statStatus := STATUS_TEACH_TWO_WAITING;
 								statFBSubState := 0;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 								statStatus := STATUS_TEACH_TWO_BUSY;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 								statStatus := ERR_TEACH_DEVICE;
 							END_IF;
 
 							// Check if Teachpoints were successfuly acquired
-							IF (statRwRecordIOLData.Data[0] AND MASK_FLAG_TP1) = MASK_FLAG_TP1 THEN
+							IF (statRwRecordIOLData[0] AND MASK_FLAG_TP1) = MASK_FLAG_TP1 THEN
 								statTP1Teached := TRUE;
 							END_IF;
 
-							IF (statRwRecordIOLData.Data[0] AND MASK_FLAG_TP2) = MASK_FLAG_TP2 THEN
+							IF (statRwRecordIOLData[0] AND MASK_FLAG_TP2) = MASK_FLAG_TP2 THEN
 								statTP2Teached := TRUE;
 							END_IF;
 						END_IF;
@@ -1953,7 +1953,7 @@ NAMESPACE Simatic.Ax.IOLink
 							statFBSubState := FB_SUB_STATE_TWO_VAL_UPDATE_STATUS;
 							statMyPermitAbort := TRUE;
 
-							IF statRwRecordIOLData.Data[0] = TICMD_APPLY THEN
+							IF statRwRecordIOLData[0] = TICMD_APPLY THEN
 								statFBState := FB_STATE_CHECK_RESULT;
 								statStatus := STATUS_TEACH_APPLYING; // Busy, Teach process, apply action
 							END_IF;
@@ -1964,7 +1964,7 @@ NAMESPACE Simatic.Ax.IOLink
 						statMyPermitApply := TRUE;
 
 						IF applyAuto THEN
-							statRwRecordIOLData.Data[0] := TICMD_APPLY;
+							statRwRecordIOLData[0] := TICMD_APPLY;
 							statFBSubState := FB_SUB_STATE_TWO_VAL_WRITE_COMMAND;
 						END_IF;
 					END_IF;
@@ -1980,10 +1980,10 @@ NAMESPACE Simatic.Ax.IOLink
 
 						IF teachFunction = TEACH_FUNCTION_1 AND statMyPermitTeach1 THEN
 							// Start Teach
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_START;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_START;
 						ELSIF teachFunction = TEACH_FUNCTION_2 AND statMyPermitTeach2 AND statTeachStarted THEN
 							// Stop Teach
-							statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_STOP;
+							statRwRecordIOLData[0] := TICMD_TEACH_SP_STOP;
 						END_IF;
 
 						statFBSubState := FB_SUB_STATE_DYNAMIC_WRITE_COMMAND;
@@ -1992,7 +1992,7 @@ NAMESPACE Simatic.Ax.IOLink
 					// Send Stop Teach Command if time is up
 					IF statTeachStarted AND teachTimer <> T#0ms AND instTimer.output = TRUE THEN
 						// Stop Teach
-						statRwRecordIOLData.Data[0] := TICMD_TEACH_SP_STOP;
+						statRwRecordIOLData[0] := TICMD_TEACH_SP_STOP;
 						statFBSubState := FB_SUB_STATE_DYNAMIC_WRITE_COMMAND;
 					END_IF;
 
@@ -2008,20 +2008,20 @@ NAMESPACE Simatic.Ax.IOLink
 							record := statRwRecordIOLData);
 
 							// Evaluate response from device
-							IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
-								(statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
+							IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_IDLE) OR
+								(statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS)
 							THEN // Idle and success are handled as error because wait for command is expected here
 								statStatus := ERR_TEACH_DEVICE;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 								statStatus := STATUS_TEACH_DYNAMIC_WAITING;
 								statFBSubState := 0;
 								statTeachStarted := TRUE;
 								statMyPermitTeach1 := FALSE;
 								statMyPermitTeach2 := TRUE;
 								statMyPermitAbort := TRUE;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 								statStatus := STATUS_TEACH_DYNAMIC_BUSY;
-							ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+							ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 								statStatus := ERR_TEACH_DEVICE;
 							ELSE
 								statStatus := ERR_TEACH_DEVICE;
@@ -2040,7 +2040,7 @@ NAMESPACE Simatic.Ax.IOLink
 							instDevice(execute := FALSE,
 								record := statRwRecordIOLData);
 
-							IF statRwRecordIOLData.Data[0] = TICMD_TEACH_SP_START THEN
+							IF statRwRecordIOLData[0] = TICMD_TEACH_SP_START THEN
 								statFBSubState := FB_SUB_STATE_DYNAMIC_UPDATE_STATUS;
 
 								// Start Teach Timer
@@ -2049,7 +2049,7 @@ NAMESPACE Simatic.Ax.IOLink
 									signal := TRUE);
 								END_IF;
 
-							ELSIF statRwRecordIOLData.Data[0] = TICMD_TEACH_SP_STOP THEN
+							ELSIF statRwRecordIOLData[0] = TICMD_TEACH_SP_STOP THEN
 								statFBState := FB_STATE_CHECK_RESULT;
 								statStatus := STATUS_TEACH_APPLYING; // Busy, Teach process, apply action
 							END_IF;
@@ -2077,9 +2077,9 @@ NAMESPACE Simatic.Ax.IOLink
 						instDevice(execute := FALSE,
 						record := statRwRecordIOLData);
 
-						IF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
+						IF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_BUSY) THEN
 							; // Keep trying until teach state of device is not busy
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_SUCCESS) THEN
 							statMyPermitTeach1 := FALSE;
 							statMyPermitTeach2 := FALSE;
 							statMyPermitApply := FALSE;
@@ -2088,9 +2088,9 @@ NAMESPACE Simatic.Ax.IOLink
 							statFBState := FB_STATE_READ_ALL; // Go to read all
 							statIndexRead := INDEX_SSC_PARAM;
 							statLenRead := 2;
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_WAIT_FOR_COMMAND) THEN
 							statStatus := STATUS_TEACH_WAITING_APPLY;
-						ELSIF (statRwRecordIOLData.Data[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
+						ELSIF (statRwRecordIOLData[0] AND MASK_TEACH_STATE) = TO_BYTE(TEACH_STATE_ERROR) THEN
 							statStatus := ERR_TEACH_DEVICE;
 						END_IF;
 					END_IF;
@@ -2115,7 +2115,7 @@ NAMESPACE Simatic.Ax.IOLink
 					statStatus := STATUS_TEACH_ABORTING;
 
 					// Abort Teach-in sequence
-					statRwRecordIOLData.Data[0] := TICMD_TEACH_CANCEL;
+					statRwRecordIOLData[0] := TICMD_TEACH_CANCEL;
 					instDevice(execute := TRUE,
 					readWrite := MODE_WRITE,
 					index := INDEX_SYS_CMD,
@@ -2156,7 +2156,7 @@ NAMESPACE Simatic.Ax.IOLink
 						record := statRwRecordIOLData);
 
 						IF statIndexRead >= INDEX_SSC_CONFIG THEN
-							logicOut := TO_BOOL(statRwRecordIOLData.Data[0] AND BYTE#2#00000001);
+							logicOut := TO_BOOL(statRwRecordIOLData[0] AND BYTE#2#00000001);
 
 							IF backupEnable AND functionCmd = FUNC_TEACH THEN
 								statFBState := FB_STATE_BACKUP;
@@ -2165,12 +2165,12 @@ NAMESPACE Simatic.Ax.IOLink
 							END_IF;
 
 						ELSE
-							tempSetpointOut1.%B0 := statRwRecordIOLData.Data[1];
-							tempSetpointOut1.%B1 := statRwRecordIOLData.Data[0];
+							tempSetpointOut1.%B0 := statRwRecordIOLData[1];
+							tempSetpointOut1.%B1 := statRwRecordIOLData[0];
 							setpointOut1 := TO_INT(tempSetpointOut1);
 
-							tempSetpointOut2.%B0 := statRwRecordIOLData.Data[1];
-							tempSetpointOut2.%B1 := statRwRecordIOLData.Data[0];
+							tempSetpointOut2.%B0 := statRwRecordIOLData[1];
+							tempSetpointOut2.%B1 := statRwRecordIOLData[0];
 							setpointOut2 := TO_INT(tempSetpointOut2);
 
 							// Read "Logic" after reading "Setpoint"
@@ -2184,7 +2184,7 @@ NAMESPACE Simatic.Ax.IOLink
 				// REGION write config
 				IF statFBState = FB_STATE_WRITE_CONF THEN
 					statStatus := STATUS_BUSY_WRITING; // Busy writing data
-					statRwRecordIOLData.Data[0] := TO_BYTE(logicIn);
+					statRwRecordIOLData[0] := TO_BYTE(logicIn);
 
 					instDevice(execute := true,
 						readWrite := MODE_WRITE,
@@ -2212,12 +2212,12 @@ NAMESPACE Simatic.Ax.IOLink
 					statStatus := STATUS_BUSY_WRITING;
 
 					tempSetpointIn1 := TO_WORD(setpointIn1);
-					statRwRecordIOLData.Data[1] := tempSetpointIn1.%B0;
-					statRwRecordIOLData.Data[0] := tempSetpointIn1.%B1;
+					statRwRecordIOLData[1] := tempSetpointIn1.%B0;
+					statRwRecordIOLData[0] := tempSetpointIn1.%B1;
 
 					tempSetpointIn2 := TO_WORD(setpointIn2);
-					statRwRecordIOLData.Data[1] := tempSetpointIn2.%B0;
-					statRwRecordIOLData.Data[0] := tempSetpointIn2.%B1;
+					statRwRecordIOLData[1] := tempSetpointIn2.%B0;
+					statRwRecordIOLData[0] := tempSetpointIn2.%B1;
 
 					instDevice(execute := TRUE,
 					readWrite := MODE_WRITE,
@@ -2243,7 +2243,7 @@ NAMESPACE Simatic.Ax.IOLink
 				// REGION param download store
 				IF statFBState = FB_STATE_BACKUP THEN
 					statStatus := STATUS_BUSY_BACKUP; // Busy backup
-					statRwRecordIOLData.Data[0] := BYTE#16#05;
+					statRwRecordIOLData[0] := BYTE#16#05;
 
 					instDevice(execute := TRUE,
 					readWrite := MODE_WRITE,

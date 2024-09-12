@@ -14,11 +14,11 @@ NAMESPACE Simatic.Ax.IOLink
 			statStatus           : Word := Status#STATUS_NO_CALL;         // Static value for output 'status'                               
 			statHwID             : HW_IO;                                 // Static value for input 'hwID'
 			statHwIDprevious     : HW_IO;                                 // Static value for input 'hwID' from the previous execute 
-			statCap              : UInt;                                  // Static value for input 'cap'
-			statPort             : INT;
-			statIndex            : INT;
-			statSubIndex         : INT;
-            statLength           : UInt;                                              // Length of data to be written to device
+			statCap              : UInt;                                  // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
+			statPort             : INT;                                   // Port on IO-Link master module
+			statIndex            : INT;                                   // Address parameter index (IO-Link device); 0..32767: IOL-D; 65535: port functions
+			statSubIndex         : INT;                                   // Address parameter subindex (IO-Link device); 0: full record; 1-255: single parameter  
+            statLength           : UInt;                                  // Length of data to be written to device
             statMode                : Mode;
 			statPollingPeriod    : LTIME := LTIME#100MS;                       // Static value for input 'pollingPeriod'
 			statTimeout          : LTIME := LTIME#20s;                         // Static value for input 'timeout'
@@ -91,7 +91,7 @@ NAMESPACE Simatic.Ax.IOLink
                 statLength := length + TO_UINT(Lengths#RECORD_HEADER); // data length header + data = IO-Link write data record
                 // copy "record" to working area
                 FOR tempIndexCounter := 0 TO TO_INT(length) - 1 DO
-                    statWrite.data[tempIndexCounter] := data.data[tempIndexCounter];
+                    statWrite.data[tempIndexCounter] := data[tempIndexCounter];
                 END_FOR;
 
                 // REGION Check parameters
@@ -172,7 +172,7 @@ NAMESPACE Simatic.Ax.IOLink
                 //save the hwID from the previous execute
                 statHwIDprevious := statHwID;
 
-                IF statStatus = Status#STATUS_FIRST_CALL THEN // Parameters OK
+                IF statStatus = Status#STATUS_NO_CALL THEN // Parameters OK
                     IF statcap <> UINT#0 THEN
                         statFBState := State#FB_STATE_PREPARE_WRITE;
                     ELSIF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
@@ -198,6 +198,7 @@ NAMESPACE Simatic.Ax.IOLink
 
             VAR_TEMP
                 tempIndexCounter : INT;
+                temploopTest : INT;
             END_VAR
 
             CASE statFBState OF
@@ -223,6 +224,7 @@ NAMESPACE Simatic.Ax.IOLink
                                 statFBState := State#FB_STATE_READ_CAP;
                             END_IF;
                         ELSIF instRdRec.VALID = TRUE THEN
+
                             instRdRec.request := FALSE;
                             // if status of RDREC is valid then CAP is 16#B400 (CAP_STANDARD)
                             IF instRdRec.STATUS.%B3 = ReadWriteRecordStatus#STATUS_RDREC_VALID THEN
@@ -248,6 +250,7 @@ NAMESPACE Simatic.Ax.IOLink
                             statCap := UINT#0; //clear CAP if an error occurs
                         END_IF;
                     END_IF;
+                    
     
                     instRdRec(record := statBuffer);
                     // END_REGION
@@ -257,7 +260,7 @@ NAMESPACE Simatic.Ax.IOLink
                     //read and write record system functions in SIMATIC AX are more strict
                     //it is not possible to add a struct as VAR_IN_OUT to them
                     //instead, a byte array is needed. This intermediate step converts the struct data to write into the byte array for the system function
-                    SerializeLittle(offset := UDINT#0, value := statWrite, buffer := statBuffer);
+                    SerializeBig(offset := UDINT#0, value := statWrite, buffer := statBuffer);
                     statFBState := state#FB_STATE_WRITE;
     
                 State#FB_STATE_WRITE:
@@ -282,8 +285,8 @@ NAMESPACE Simatic.Ax.IOLink
                     ELSIF instWrRec.DONE = TRUE THEN
                         instWrRec(request := FALSE, record := statBuffer); // Reset request
     
-                        //read back written values from buffer
-                        DeserializeLittle(offset := UDINT#0, value := statWrite, buffer := statBuffer);
+                        //write read config into buffer
+                        SerializeBig(offset := UDINT#0, value := statRead, buffer := statBuffer);
                         statFBState := state#FB_STATE_POLL;
                     END_IF;
                     // END_REGION write
@@ -314,8 +317,9 @@ NAMESPACE Simatic.Ax.IOLink
                             statFBErrorState := statFBState;
                         END_IF;
                     ELSIF instRdRec.VALID THEN
+
                         //deserialize received data
-                        DeserializeLittle(offset := UDINT#0, value := statRead, buffer := statBuffer);
+                        DeserializeBig(offset := UDINT#0, value := statRead, buffer := statBuffer);
                         IF // check the response wether it matches the request (compare PORT, index and SUBINDEX)
                             (statWrite.header.call.port <> statRead.header.call.port)
                             OR (statWrite.header.iolHeader.indexHighByte <> statRead.header.iolHeader.indexHighByte)
@@ -336,7 +340,7 @@ NAMESPACE Simatic.Ax.IOLink
                                 length := instRdRec.length - TO_UINT(Lengths#RECORD_HEADER);
                                 // only data will be output
                                 FOR tempIndexCounter := 0 TO TO_INT(instRdRec.length - TO_UINT(Lengths#RECORD_HEADER) - UINT#1) DO
-                                    data.data[tempIndexCounter] := statRead.data[tempIndexCounter];
+                                    data[tempIndexCounter] := statRead.data[tempIndexCounter];
                                 END_FOR;
                             END_IF;
     

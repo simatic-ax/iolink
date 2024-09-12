@@ -36,9 +36,9 @@ NAMESPACE Simatic.Ax.IOLink
             data         : Array[0..Lengths#RECORD - 1] of Byte;  // Data
         END_STRUCT;
 
-        LIOLink_typeRecordData : STRUCT
-            data : ARRAY[0..Lengths#RECORD - 1] OF BYTE;
-        END_STRUCT;
+        LIOLink_typeRecordData : ARRAY[0..Lengths#RECORD - 1] OF BYTE;
+
+        LIOLink_typeRecordDataWithHeader : ARRAY[0..Lengths#RECORD + Lengths#RECORD_HEADER - 1] OF BYTE;
 
     END_TYPE
 END_NAMESPACE

@@ -198,7 +198,7 @@ NAMESPACE Simatic.Ax.IOLink
 				statLen := TO_UINT(writeLen) + LEN_HEADER; // data length header + data = IO-Link write data record
 				// copy "record" to working area
 				FOR tempIndexCounter := 0 TO writeLen - 1 DO
-					statWrite.data[tempIndexCounter] := record.data[tempIndexCounter];
+					statWrite.data[tempIndexCounter] := record[tempIndexCounter];
 				END_FOR;
 			ELSE // Read data record requested
 				// Empty record array
@@ -382,7 +382,7 @@ NAMESPACE Simatic.Ax.IOLink
 							readLen := TO_INT(instRdRec.length - LEN_HEADER);
 							// only data will be output
 							FOR tempIndexCounter := 0 TO TO_INT(instRdRec.length - LEN_HEADER - UINT#1) DO
-								record.data[tempIndexCounter] := statRead.data[tempIndexCounter];
+								record[tempIndexCounter] := statRead.data[tempIndexCounter];
 							END_FOR;
 						END_IF;
 
