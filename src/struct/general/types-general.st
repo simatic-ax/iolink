@@ -37,8 +37,9 @@ NAMESPACE Simatic.Ax.IOLink
         END_STRUCT;
 
         LIOLink_typeRecordData : ARRAY[0..Lengths#RECORD - 1] OF BYTE;
-
         LIOLink_typeRecordDataWithHeader : ARRAY[0..Lengths#RECORD + Lengths#RECORD_HEADER - 1] OF BYTE;
+        LIOLink_typeMaster4PortRecordData : ARRAY[0..42  * Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
+        LIOLink_typeMaster8PortRecordData : ARRAY[0..73 * Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
 
     END_TYPE
 END_NAMESPACE

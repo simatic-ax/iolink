@@ -55,7 +55,7 @@ NAMESPACE Simatic.Ax.IOLink
 			instMonitor          : System.Timer.OnDelay;                              // request monitoring time
 			statRead             : LIOLink_typeReadWrite;
 			statWrite            : LIOLink_typeReadWrite;
-			statBuffer           : Array[0..Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
+			statBuffer           : LIOLink_typeRecordDataWithHeader;
 		END_VAR
 
 		VAR_TEMP 
@@ -269,6 +269,7 @@ NAMESPACE Simatic.Ax.IOLink
 							statFBState := FB_STATE_READ_CAP;
 						END_IF;
 					ELSIF instRdRec.VALID = TRUE THEN
+						DeserializeBig(offset := UINT#0, value := statRead, buffer := statbuffer);
 						instRdRec.request := FALSE;
 						// if status of RDREC is valid then CAP is 16#B400 (CAP_STANDARD)
 						IF instRdRec.STATUS.%B3 = STATUS_RDREC_VALID THEN
@@ -303,7 +304,7 @@ NAMESPACE Simatic.Ax.IOLink
 				//read and write record system functions in SIMATIC AX are more strict
 				//it is not possible to add a struct as VAR_IN_OUT to them
 				//instead, a byte array is needed. This intermediate step converts the struct data to write into the byte array for the system function
-				SerializeLittle(offset := UDINT#0, value := statWrite, buffer := statBuffer);
+				SerializeBig(offset := UDINT#0, value := statWrite, buffer := statBuffer);
 				statFBState := FB_STATE_WRITE;
 
 				FB_STATE_WRITE:
@@ -328,8 +329,8 @@ NAMESPACE Simatic.Ax.IOLink
 				ELSIF instWrRec.DONE = TRUE THEN
 					instWrRec(request := FALSE, record := statBuffer); // Reset request
 
-					//read back written values from buffer
-					DeserializeLittle(offset := UDINT#0, value := statWrite, buffer := statBuffer);
+					//write read config into buffer
+					SerializeBig(offset := UDINT#0, value := statRead, buffer := statBuffer);
 					statFBState := FB_STATE_POLL;
 				END_IF;
 				// END_REGION write
@@ -361,7 +362,7 @@ NAMESPACE Simatic.Ax.IOLink
 					END_IF;
 				ELSIF instRdRec.VALID THEN
 					//deserialize received data
-					DeserializeLittle(offset := UDINT#0, value := statRead, buffer := statBuffer);
+					DeserializeBig(offset := UDINT#0, value := statRead, buffer := statBuffer);
 					IF // check the response wether it matches the request (compare PORT, index and SUBINDEX)
 						(statWrite.header.call.port <> statRead.header.call.port)
 						OR (statWrite.header.iolHeader.indexHighByte <> statRead.header.iolHeader.indexHighByte)
@@ -530,6 +531,7 @@ NAMESPACE Simatic.Ax.IOLink
 			STATUS_NO_CALL                          : Word  := WORD#16#7000;        // No current processing request / no order in process
 			STATUS_FIRST_CALL                       : Word  := WORD#16#7001;        // First call after new incoming job request (rising edge at 'execute')
 			STATUS_SUBSEQUENT_CALL                  : Word  := WORD#16#7002;        // Subfunction call in progress without further detailing
+			STATUS_DONE								: WORD  := WORD#16#7003;
 			STATUS_MASK                             : DWord := DWORD#16#00FF_FF00;  // Mask to filter error codes
 			STATUS_RESOURCE_BUSY                    : DWord := DWORD#16#0080_C200;  // Status from WRREC/RDREC: Resource is busy
 			ERR_UNDEFINED_STATE                     : Word  := WORD#16#8600;        // Error in function due to an undefined state in the state machine
@@ -639,10 +641,17 @@ NAMESPACE Simatic.Ax.IOLink
 		ELSIF (statStatus = STATUS_FIRST_CALL) THEN
 			statStatus := STATUS_SUBSEQUENT_CALL;
 		ELSIF (statFBState = FB_STATE_NO_PROCESSING) THEN
-			statStatus := STATUS_NO_CALL;
-			statDone := FALSE;
-			statBusy := FALSE;
-			statError := FALSE;
+			IF execute  THEN
+				statStatus := STATUS_DONE;
+				statDone := TRUE;
+				statBusy := FALSE;
+				statError := FALSE;
+			ELSE
+				statStatus := STATUS_NO_CALL;
+				statDone := FALSE;
+				statBusy := FALSE;
+				statError := FALSE;
+			END_IF;
 
 			instRdDiag(request := FALSE,
 			record := statDiagRecord);
@@ -936,7 +945,7 @@ NAMESPACE Simatic.Ax.IOLink
 			statSegment          : DInt;                                              // current segment
 			statAddress          : DInt;                                              // current address
 			statLen              : DInt;                                              // total length of operated data
-			statBuffer           : Array[0..Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
+			statBuffer           : LIOLink_typeRecordDataWithHeader;
 		END_VAR
 
 		VAR_TEMP 
@@ -1058,10 +1067,10 @@ NAMESPACE Simatic.Ax.IOLink
 				statStatus := ERR_ARRAY_UNSUPPORTED;
 			ELSE // Check mode
 				IF statMode = MODE_BACKUP THEN
-				FOR tempIndex := 0 TO tempUpperBound DO // initialize data record before backup
-					record[tempIndex] := BYTE#16#0;
-				END_FOR;
-				statFBState := FB_STATE_PREPARE_RESET;
+					FOR tempIndex := 0 TO tempUpperBound DO // initialize data record before backup
+						record[tempIndex] := BYTE#16#0;
+					END_FOR;
+					statFBState := FB_STATE_PREPARE_RESET;
 				ELSIF statMode = MODE_RESTORE THEN
 					statFBState := FB_STATE_PREPARE_RESET;
 				ELSE
@@ -1087,7 +1096,9 @@ NAMESPACE Simatic.Ax.IOLink
 				statRecStruct.reset.ExtendedFunctionNum := FUNC_PUSH;
 				statRecStruct.reset.SequenceNo := SEQ_NUM_RESET;  // reset save/restore operations
 				
-				SerializeLittle(offset := UINT#0, value := statRecStruct.reset, buffer := statBuffer);
+				SerializeBig(offset := UINT#0, value := statRecStruct.reset, buffer := statBuffer);
+				statFBState := FB_STATE_RESET;
+
 			FB_STATE_RESET:
 
 				instWrRec(request    := true,
@@ -1125,14 +1136,14 @@ NAMESPACE Simatic.Ax.IOLink
 
 				// evaluation of RDREC
 				IF instRdRec.VALID = TRUE THEN
-					DeserializeLittle(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
+					DeserializeBig(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
 					IF instRdRec.length > LEN_HEADER AND statRecStruct.backup.ExtendedFunctionNum = FUNC_PULL THEN
 						statStatus := STATUS_OFFSET_BACKUP OR statRecStruct.backup.SequenceNo.%B0;  // append segment number
 						statSegment := TO_DINT(statRecStruct.backup.SequenceNo);
 						tempLen := instRdRec.length - LEN_HEADER;
 
 						FOR tempIndex := 0 TO tempLen - UINT#1 DO
-							record[tempIndex] := statRecStruct.backup.payload[tempIndex];
+							record[tempIndex + statAddress] := statRecStruct.backup.payload[tempIndex];
 						END_FOR;
 
 						// add total length of data
@@ -1170,7 +1181,7 @@ NAMESPACE Simatic.Ax.IOLink
 					END_FOR;
 
 					//move into buffer
-					SerializeLittle(offset := UINT#0, value := statRecStruct.restore, buffer := statBuffer);
+					SerializeBig(offset := UINT#0, value := statRecStruct.restore, buffer := statBuffer);
 
 				END_IF;
 
@@ -1201,7 +1212,7 @@ NAMESPACE Simatic.Ax.IOLink
 					maxLength   := LEN_HEADER + MAX_SIZE_SEGMENT,
 					record := statBuffer);
 
-					DeserializeLittle(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
+					DeserializeBig(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
 
 				IF instRdRec.VALID = TRUE AND statRecStruct.backup.ExtendedFunctionNum = FUNC_PULL THEN
 					IF statRecStruct.backup.SequenceNo = SEQ_NUM_RESTORE_ONGOING
