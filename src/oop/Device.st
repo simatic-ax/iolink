@@ -1,40 +1,32 @@
 USING Siemens.Simatic.S71500.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
 
-    CLASS IoLinkDevice
-        VAR PUBLIC
+    CLASS PUBLIC Device EXTENDS IOLinkBase
+        VAR PUBLIC            
             data : LIOLink_typeRecordData;
             length : UINT;
         END_VAR
+
         VAR PRIVATE
 			dataInternal         : LIOLink_typeRecordData;
-			statDone             : Bool;                                  // Static value for output 'done'
-			statBusy             : Bool;                                  // Static value for output 'busy'
-			statError            : Bool;                                  // Static value for output 'error'
-			statStatus           : Word := Status#STATUS_NO_CALL;         // Static value for output 'status'                               
-			statHwID             : HW_IO;                                 // Static value for input 'hwID'
+    		statHwID             : HW_IO;                                 // Static value for input 'hwID'
 			statHwIDprevious     : HW_IO;                                 // Static value for input 'hwID' from the previous execute 
 			statCap              : UInt;                                  // Client Access Point (CAP) 0xB400 or 0x00E3 (227)
 			statPort             : INT;                                   // Port on IO-Link master module
 			statIndex            : INT;                                   // Address parameter index (IO-Link device); 0..32767: IOL-D; 65535: port functions
 			statSubIndex         : INT;                                   // Address parameter subindex (IO-Link device); 0: full record; 1-255: single parameter  
             statLength           : UInt;                                  // Length of data to be written to device
-            statMode                : Mode;
+            statMode             : Mode;
 			statPollingPeriod    : LTIME := LTIME#100MS;                       // Static value for input 'pollingPeriod'
 			statTimeout          : LTIME := LTIME#20s;                         // Static value for input 'timeout'
             statRead             : LIOLink_typeReadWrite;
 			statWrite            : LIOLink_typeReadWrite;
-			statSubfunctionStatus: DWord;                                 // Status of WRREC/RDREC or error code from IO-Link Master (%W1: IO-Link Master error, %W0: ISDU error)
-			statFBErrorState     : DInt;                                  // State in the state machine of the block where the error occurred
-			statFBState          : DInt := StateDevice#FB_STATE_NO_PROCESSING;  // State in the state machine of the FB
             statBuffer           : Array[0..Lengths#RECORD_WITH_HEADER - 1] OF BYTE;
-            statDiagnostics : LIOLink_typeDiagnostics;  // Diagnostics information of FB
             instRdRec            : ReadRecord;                                        // System function "read data record"
 			instWrRec            : WriteRecord;                                       // System function "write data record"
 			instPoll             : System.Timer.Pulse;                                // poll rate read data record
 			instMonitor          : System.Timer.OnDelay;                              // request monitoring time
         END_VAR
-
 
         METHOD PUBLIC Setup
             VAR_INPUT
@@ -61,79 +53,7 @@ NAMESPACE Simatic.Ax.IOLink
             
         END_METHOD
 
-        METHOD SetWriteCommand : BOOL
-            VAR_OUTPUT
-                status : WORD;
-            END_VAR
-            VAR_TEMP
-                tempIndexCounter : INT;
-            END_VAR
-
-            IF statFBState = StateDevice#FB_STATE_NO_PROCESSING THEN
-                statStatus := Status#STATUS_FIRST_CALL;
-                IF length < UINT#1 OR length > TO_UINT(Lengths#RECORD) THEN
-                    statStatus := Status#ERR_WRONG_LENGTH;
-                    //stop execution to prohibit access out of array bounds
-                    RETURN;
-                END_IF;
-
-                // REGION Build header
-                // setup call header
-                statWrite.header.call.port := TO_BYTE(statPort);
-
-                // setup IOL header 
-                statWrite.header.iolHeader.indexLowByte := TO_BYTE(statIndex);
-                statWrite.header.iolHeader.indexHighByte := TO_BYTE(SHR(TO_WORD(statIndex), UINT#8));
-                statWrite.header.iolHeader.subindex := TO_BYTE(statSubindex);
-
-                // BODY (data max. 232 Byte, Array 0..231 of Byte) 
-                statWrite.header.iolHeader.control := Control#CONTROL_WRITE;
-                statLength := length + TO_UINT(Lengths#RECORD_HEADER); // data length header + data = IO-Link write data record
-                // copy "record" to working area
-                FOR tempIndexCounter := 0 TO TO_INT(length) - 1 DO
-                    statWrite.data[tempIndexCounter] := data[tempIndexCounter];
-                END_FOR;
-
-                // REGION Check parameters
-                // Check parameters
-                IF (statPort < 0) OR (statPort > TO_INT(Limit#MAX_PORT)) THEN
-                    statStatus := Status#ERR_WRONG_PORT;
-                ELSIF (statIndex < 0) OR FALSE (*(statIndex > MAX_INDEX AND statIndex <> INDEX_PORT_FUNC)*) THEN //deactivate check, since it could never be valid anyway
-                    statStatus := Status#ERR_WRONG_INDEX;
-                ELSIF (statSubIndex < 0) OR (statSubIndex > TO_INT(Limit#MAX_SUBINDEX)) THEN
-                    statStatus := Status#ERR_WRONG_SUBINDEX;
-
-                END_IF;
-                //save the hwID from the previous execute
-                statHwIDprevious := statHwID;
-
-                IF statStatus = Status#STATUS_FIRST_CALL THEN // Parameters OK
-                    IF statcap <> UINT#0 THEN
-                        statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
-                    ELSIF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
-                        statFBState := StateDevice#FB_STATE_READ_CAP;
-                    ELSE
-                        statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
-                    END_IF;
-                    //feedback, that command will be executed
-                    SetWriteCommand := TRUE;
-                    statBusy := TRUE;
-                    statMode := Mode#WRITE;
-                END_IF;
-                // END_REGION
-                    ;
-            ELSE
-                statStatus := Status#ERR_EXECUTION_ACTIVE;
-            END_IF;
-
-            //write status to output for diagnostic purposes
-            status := statStatus;
-            
-        END_METHOD
-
-        METHOD PUBLIC SetReadCommand : BOOL
-            VAR_INPUT
-            END_VAR
+        METHOD PUBLIC Read : BOOL
             VAR_OUTPUT
                 status : WORD;
             END_VAR
@@ -141,57 +61,93 @@ NAMESPACE Simatic.Ax.IOLink
                 tempEmptyRecord : LIOLink_typeRecordData;
             END_VAR
             
-            IF statFBState = StateDevice#FB_STATE_NO_PROCESSING THEN
-                // REGION Build header
-                // setup call header
-                statWrite.header.call.port := TO_BYTE(statPort);
-
-                // setup IOL header 
-                statWrite.header.iolHeader.indexLowByte := TO_BYTE(statIndex);
-                statWrite.header.iolHeader.indexHighByte := TO_BYTE(SHR(TO_WORD(statIndex), UINT#8));
-                statWrite.header.iolHeader.subindex := TO_BYTE(statSubindex);
-
-                // BODY (data max. 232 Byte, Array 0..231 of Byte) 
-                // Read data record requested
-                // Empty record array
-                data := tempEmptyRecord;
-
-                statWrite.header.iolHeader.control := Control#CONTROL_READ;
-                statLength := TO_UINT(Lengths#RECORD_HEADER); // data length only header = IO-Link read data record
-                // END_REGION
-
-                // REGION Check parameters
-                // Check parameters
-                IF (statPort < 0) OR (statPort > TO_INT(Limit#MAX_PORT)) THEN
-                    statStatus := Status#ERR_WRONG_PORT;
-                ELSIF (statIndex < 0) OR FALSE (*(tempIndex > MAX_INDEX AND tempIndex <> INDEX_PORT_FUNC)*) THEN //deactivate check, since it could never be valid anyway
-                    statStatus := Status#ERR_WRONG_INDEX;
-                ELSIF (statSubindex < 0) OR (statSubindex > TO_INT(Limit#MAX_SUBINDEX)) THEN
-                    statStatus := Status#ERR_WRONG_SUBINDEX;
-                END_IF;
-                //save the hwID from the previous execute
-                statHwIDprevious := statHwID;
-
-                IF statStatus = Status#STATUS_NO_CALL THEN // Parameters OK
-                    IF statcap <> UINT#0 THEN
-                        statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
-                    ELSIF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
-                        statFBState := StateDevice#FB_STATE_READ_CAP;
-                    ELSE
-                        statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
-                    END_IF;
-                    //feedback: request is valid and will be processed
-                    SetReadCommand := TRUE;
-                    statBusy := TRUE;
-                    statMode := Mode#READ;
-                    statStatus := Status#STATUS_SUBSEQUENT_CALL;
-                END_IF;
-            ELSE
-                statStatus := Status#ERR_EXECUTION_ACTIVE;
+            // Empty record array
+            data := tempEmptyRecord;
+            
+            IF NOT THIS.ReadWriteReqInternal() THEN
+                RETURN;
             END_IF;
 
-            //write status to output for diagnostic purposes
+            statWrite.header.iolHeader.control := Control#CONTROL_READ;
+            statLength := TO_UINT(Lengths#RECORD_HEADER); // data length only header = IO-Link read data record
+            Read := TRUE;
+            statMode := Mode#READ;
             status := statStatus;
+
+        END_METHOD
+
+        METHOD PUBLIC Write : BOOL
+            VAR_OUTPUT
+                status : WORD;
+            END_VAR
+
+            IF NOT THIS.ReadWriteReqInternal() THEN
+                RETURN;
+            END_IF;
+
+            //check length of write request
+            IF length < UINT#1 OR length > TO_UINT(Lengths#RECORD) THEN
+                statStatus := Status#ERR_WRONG_LENGTH;
+                //stop execution to prohibit access out of array bounds
+                RETURN;
+            END_IF;
+
+            //copy write request data to internal structure to prevent changes while executing
+            statWrite.data := data;
+
+            statWrite.header.iolHeader.control := Control#CONTROL_WRITE;
+            statLength := length + TO_UINT(Lengths#RECORD_HEADER); // data length header + data = IO-Link write data record
+            //set status
+            Write := TRUE;
+            statMode := Mode#WRITE;
+            status := statStatus;
+            
+        END_METHOD
+
+        METHOD PROTECTED ReadWriteReqInternal : BOOL
+
+            //check internal state
+            IF statFBState <> StateDevice#FB_STATE_NO_PROCESSING THEN
+                statStatus := Status#ERR_EXECUTION_ACTIVE;
+                RETURN;
+            END_IF;
+
+            statStatus := Status#STATUS_FIRST_CALL;
+
+            // setup call header
+            statWrite.header.call.port := TO_BYTE(statPort);
+
+            // setup IOL header 
+            statWrite.header.iolHeader.indexLowByte := TO_BYTE(statIndex);
+            statWrite.header.iolHeader.indexHighByte := TO_BYTE(SHR(TO_WORD(statIndex), UINT#8));
+            statWrite.header.iolHeader.subindex := TO_BYTE(statSubindex);
+
+            // Check parameters
+            IF (statPort < 0) OR (statPort > TO_INT(Limit#MAX_PORT)) THEN
+                statStatus := Status#ERR_WRONG_PORT;
+            ELSIF (statIndex < 0) OR FALSE (*(statIndex > MAX_INDEX AND statIndex <> INDEX_PORT_FUNC)*) THEN //deactivate check, since it could never be valid anyway
+                statStatus := Status#ERR_WRONG_INDEX;
+            ELSIF (statSubIndex < 0) OR (statSubIndex > TO_INT(Limit#MAX_SUBINDEX)) THEN
+                statStatus := Status#ERR_WRONG_SUBINDEX;
+            END_IF;
+
+            //save the hwID from the previous execute
+            statHwIDprevious := statHwID;
+
+            IF statStatus = Status#STATUS_FIRST_CALL THEN
+                //found no issues, return TRUE
+                ReadWriteReqInternal := TRUE;
+                statBusy := TRUE;
+
+                //check if cap needs to be read out before accessing the device
+                IF statcap <> UINT#0 THEN
+                    statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
+                ELSIF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
+                    statFBState := StateDevice#FB_STATE_READ_CAP;
+                ELSE
+                    statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
+                END_IF;
+            END_IF;
 
         END_METHOD
 
@@ -398,48 +354,6 @@ NAMESPACE Simatic.Ax.IOLink
 
         END_METHOD
 
-        METHOD PUBLIC GetStatus
-
-            VAR_OUTPUT
-                busy  : BOOL;
-                error : BOOL;
-                done  : BOOL;
-                status : WORD;
-            END_VAR
-
-            // REGION write static values to outputs
-            done := statDone;
-            busy := statBusy;
-            error := statError;
-            status := statStatus;
-            //ENO := NOT #statError;
-            // END_REGION write static values to outputs
-        END_METHOD
-
-        METHOD PUBLIC Reset
-
-            //clear internal FB calls
-            instRdRec(request := FALSE,
-            record := statBuffer);
-            instPoll(signal := FALSE,
-            duration := statPollingPeriod);
-
-            // execute reset
-            statDone := FALSE;
-            statBusy := FALSE;
-            statError := FALSE;
-            statStatus := status#STATUS_NO_CALL;
-            length := UINT#0;
-
-            //reset state to initial state
-            statFBstate := StateDevice#FB_STATE_NO_PROCESSING;
-            
-        END_METHOD
-
     END_CLASS
-
-    TYPE
-        Command : (READ, WRITE, DIAGNOSE);
-    END_TYPE
 
 END_NAMESPACE
