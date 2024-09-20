@@ -3,10 +3,10 @@ TYPE
   LIOLink_typePortEventQualifier : STRUCT
   /// LIOLink_typePortEventQualifier
 //EventQualifier: Instance, Source, Type, Mode
-      instance : Byte;   // 0: Unknown / 1-3: Reserved / 4: Application / 5-7: Reserved
-      source : Bool;   // (default) FALSE: Device (remote) / TRUE: Master/Port
-      eventType : Byte;   // 0: Reserved / 1: Notification / 2: Warning / 3: Error
-      mode : Byte;   // 0: Reserved / 1: Event single shot / 2: Event disappears / 3: Event appears
+      instance : Byte;  // 0: Unknown / 1-3: Reserved / 4: Application / 5-7: Reserved
+      source   : Bool;  // (default) FALSE: Device (remote) / TRUE: Master/Port
+      eventType: Byte;  // 0: Reserved / 1: Notification / 2: Warning / 3: Error
+      mode     : Byte;  // 0: Reserved / 1: Event single shot / 2: Event disappears / 3: Event appears
    END_STRUCT;
 
 END_TYPE
