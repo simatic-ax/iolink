@@ -9,6 +9,7 @@ TYPE
         STATUS_OFFSET_BACKUP      := WORD#16#7100,   // Offset for status during backup operation
         STATUS_OFFSET_RESTORE     := WORD#16#7200,   // Offset for status during restore operation
         ERR_EXECUTION_ACTIVE      := WORD#16#8001,   // A command is already being executed
+        ERR_HARDWARE_ID_INVALID   := WORD#16#8002,   // Error: The hardware id is not valid
         ERR_UNKNOWN_MODULE        := WORD#16#80B0,   // unknown type of module, check subfunctionStatus
         ERR_UNKNOWN_MODE          := WORD#16#8200,   // Unknown mode
         ERR_ARRAY_UNSUPPORTED     := WORD#16#8201,   // Record array doesn't fit expected limits
@@ -37,8 +38,9 @@ TYPE
             RECORD_HEADER := 8,
             RECORD_WITH_HEADER := RECORD + RECORD_HEADER,
             PORT_EVENT_CODES := 5,
-            PORT_EVENTS := 8
-
+            PORT_EVENTS := 8,
+            MASTER_HEADER := 6,
+            SEGMENT := 234
         );
 
         Control : BYTE(
@@ -59,13 +61,39 @@ TYPE
 			MAX_SUBINDEX              := USINT#255           // Max. possible subindex
         );
 
-        State : DINT(
+        FunctionType  : BYTE (
+            FUNC_PUSH   := BYTE#16#01,          // Extended function number for push
+			FUNC_PULL   := BYTE#16#02          // Extended function number for pull
+        );
+
+        StateDevice : DINT(
             FB_STATE_NO_PROCESSING     := 0,
             FB_STATE_PREPARE_WRITE     := 10,
             FB_STATE_WRITE             := 1,
             FB_STATE_POLL              := 2,
             FB_STATE_READ_CAP          := 3,
             FB_STATE_ERROR             := 99
+        );
+
+        StateMaster : DINT(
+			FB_STATE_NO_PROCESSING     := 0,                 // FB state: No processing
+			FB_STATE_RESET             := 1,                 // FB state: reset (essential before each backup/restore operation)
+			FB_STATE_PREPARE_RESET	   := 10,			
+			FB_STATE_BACKUP            := 11,                 // FB state: backup
+			FB_STATE_RESTORE           := 21,                 // FB state: restore segment data
+			FB_STATE_VERIFY            := 22,                 // FB state: verify restore
+            FB_STATE_ERROR             := 99
+        );
+
+        SeqNoMaster : DWORD (
+            SEQ_NUM_RESET               := DWORD#16#FFFF_FFFF,  // Sequence number for reset before backup/restore operations
+			SEQ_NUM_RESTORE_ONGOING     := DWORD#16#FFFF_FF01,  // Sequence number: restore ongoing
+			SEQ_NUM_ACTIVATION_ONGOING  := DWORD#16#FFFF_FF02,  // Sequence number: activation ongoing
+			SEQ_NUM_ACTIVATION_DONE     := DWORD#16#FFFF_FF03,  // Sequence number: activation done
+			SEQ_NUM_CRC_FAILED          := DWORD#16#FFFF_FF04,  // Sequence number: CRC check failed
+			SEQ_NUM_BLOB_INVALID        := DWORD#16#FFFF_FF05,  // Sequence number: blob data invalid
+			SEQ_NUM_WRONG_SEQUENCE      := DWORD#16#FFFF_FF06,  // Sequence number: wrong sequence number
+			SEQ_NUM_WRONG_SIZE          := DWORD#16#FFFF_FF07  // Sequence number: wrong data record size
         );
 
         BitmaskByte : BYTE (
@@ -82,6 +110,8 @@ TYPE
         ReadWriteRecordStatus : BYTE(
             STATUS_RDREC_VALID    := BYTE#16#00          // Status Code of RDREC in cased of no error occurs
         );
+
+        portType : (FOUR_PORT, EIGHT_PORT, INVALID) := INVALID;
 
         Mode : (NONE, READ, WRITE) := NONE;
 
