@@ -1,5 +1,5 @@
 # General information
-name: "iolink"
+name: "@simatic-ax/iolink"
 version: 0.0.0-placeholder
 author: Siemens AG
 # Description will be displayed in the apax extension

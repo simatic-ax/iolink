@@ -13,6 +13,7 @@ TYPE
         ERR_UNKNOWN_MODULE        := WORD#16#80B0,   // unknown type of module, check subfunctionStatus
         ERR_UNKNOWN_MODE          := WORD#16#8200,   // Unknown mode
         ERR_ARRAY_UNSUPPORTED     := WORD#16#8201,   // Record array doesn't fit expected limits
+        ERR_ARRAY_REFERENCE       := WORD#16#8202,   // Record Array reference is not present
         ERR_WRONG_PORT            := WORD#16#8201,   // Error: wrong port
         ERR_WRONG_INDEX           := WORD#16#8202,   // Error: wrong index
         ERR_WRONG_SUBINDEX        := WORD#16#8203,   // Error: wrong subindex
@@ -40,8 +41,11 @@ TYPE
             PORT_EVENT_CODES := 5,
             PORT_EVENTS := 8,
             MASTER_HEADER := 6,
-            SEGMENT := 234
-        );
+            MASTER_RECORD_SEGMENT := 234,
+            MASTER_RECORD_SEGMENT_WITH_HEADER:= MASTER_RECORD_SEGMENT + MASTER_HEADER,
+            MASTER_RECORD_4_PORT := 10240,
+            MASTER_RECORD_8_PORT := 17550
+            );
 
         Control : BYTE(
             CONTROL_WRITE               := BYTE#16#02,          // Write data record
@@ -111,9 +115,11 @@ TYPE
             STATUS_RDREC_VALID    := BYTE#16#00          // Status Code of RDREC in cased of no error occurs
         );
 
-        portType : (FOUR_PORT, EIGHT_PORT, INVALID) := INVALID;
-
         Mode : (NONE, READ, WRITE) := NONE;
+
+        MasterMode : USINT (BACKUP := USINT#0, RESTORE := USINT#1, INVALID := USINT#2);
+
+        MasterType : (FOUR_PORT, EIGHT_PORT, INVALID) := INVALID;
 
 END_TYPE
 

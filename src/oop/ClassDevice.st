@@ -207,6 +207,10 @@ NAMESPACE Simatic.Ax.IOLink
                     ; // No processing active
                     // END_REGION no processing    
     
+                    StateDevice#FB_STATE_ERROR:
+                    ; //error step. Do nothing
+                    //to re-enable operation, call reset()
+
                 StateDevice#FB_STATE_READ_CAP:
                     // To find out CAP of IO-Link Master, data record with Index 16#B000 is read. If this reading was successful
                     // then CAP is 16#B400 (based on IO-Link Standard). If the reading was not successful and the status of RDREC

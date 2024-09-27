@@ -11,7 +11,9 @@ NAMESPACE Simatic.Ax.iolink
             statSubfunctionStatus: DWord;                                 // Status of WRREC/RDREC or error code from IO-Link Master (%W1: IO-Link Master error, %W0: ISDU error)
 			statFBErrorState     : DInt;                                  // State in the state machine of the block where the error occurred
 			statFBState          : DInt := StateDevice#FB_STATE_NO_PROCESSING;  // State in the state machine of the FB
-            statDiagnostics       : LIOLink_typeDiagnostics;  // Diagnostics information of FB
+        END_VAR
+        VAR PUBLIC
+            Diagnostics       : LIOLink_typeDiagnostics;  // Diagnostics information of FB
         END_VAR
 
         METHOD PUBLIC GetStatus

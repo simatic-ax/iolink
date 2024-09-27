@@ -5,6 +5,7 @@ NAMESPACE Simatic.Ax.IOLink
         VAR PUBLIC
             Record4Ports : REF_TO LIOLink_typeMaster4PortRecordData;
             Record8Ports : REF_TO LIOLink_typeMaster8PortRecordData;
+            RecordLength : DINT;
         END_VAR
         
         VAR PROTECTED
@@ -17,6 +18,7 @@ NAMESPACE Simatic.Ax.IOLink
 			statAddress          : DInt;                                              // current address
 			statLen              : DInt;                                              // total length of operated data
 			statBuffer           : LIOLink_typeRecordDataWithHeader;
+            record : REF_TO ARRAY[*] OF BYTE;
         END_VAR
 
         VAR CONSTANT
@@ -28,36 +30,43 @@ NAMESPACE Simatic.Ax.IOLink
         METHOD PUBLIC Backup : BOOL
             VAR_INPUT
                 hwID : HW_IO;
-                port : portType;
+                port : masterType;
             END_VAR
             VAR_OUTPUT
                 status : WORD;
             END_VAR
             VAR_TEMP
                 tempIndex : INT;
+                tempLimit : INT;
             END_VAR
 
             statHwID := hwID;
             statMode := MasterMode#BACKUP;
             
-            IF port = portType#INVALID THEN
+            IF port = masterType#INVALID THEN
                 RETURN;
             END_IF;
 
-            IF NOT THIS.CheckCommandInternal() THEN
+            IF NOT THIS.CheckCommandInternal(port) THEN
                 RETURN;
+            END_IF;
+
+            IF port = MasterType#FOUR_PORT THEN
+                tempLimit := Lengths#MASTER_RECORD_4_PORT;
+            ELSE
+                tempLimit := Lengths#MASTER_RECORD_8_PORT;
             END_IF;
 
             // initialize data record before backup
-            FOR tempIndex := 0 TO tempUpperBound DO 
-                record[tempIndex] := BYTE#16#0;
+            FOR tempIndex := 0 TO tempLimit - 1 DO 
+                record^[tempIndex] := BYTE#16#0;
             END_FOR;
         END_METHOD
 
         METHOD PUBLIC Restore : BOOL
             VAR_INPUT
                 hwID : HW_IO;
-                port : portType;
+                port : masterType;
             END_VAR
             VAR_OUTPUT
                 status : WORD;
@@ -65,25 +74,29 @@ NAMESPACE Simatic.Ax.IOLink
             statHwID := hwID;
             statMode := MasterMode#RESTORE;
             
-            IF port = portType#INVALID THEN
+            IF port = masterType#INVALID THEN
                 RETURN;
             END_IF;
 
-            IF NOT THIS.CheckCommandInternal() THEN
+            IF NOT THIS.CheckCommandInternal(port) THEN
                 status := statStatus;
                 RETURN;
             END_IF;
             
         END_METHOD
 
-        METHOD PROTECTED CheckCommandInternal : BOOL;
+        METHOD PROTECTED CheckCommandInternal : BOOL
+            VAR_INPUT
+                masterType : MasterType;
+            END_VAR
+
             //check internal state
             IF statFBState <> StateDevice#FB_STATE_NO_PROCESSING THEN
                 statStatus := Status#ERR_EXECUTION_ACTIVE;
                 RETURN;
             END_IF;
 
-            IF statHwID = 0 THEN
+            IF statHwID = WORD#0 THEN
                 statStatus := Status#ERR_HARDWARE_ID_INVALID;
                 RETURN;
             END_IF;
@@ -95,32 +108,43 @@ NAMESPACE Simatic.Ax.IOLink
 			statAddress := 0;
 			statLen := 0;
 
-            // Check record array
-			tempLowerBound := LOWER_BOUND(record, 1);
-			tempUpperBound := UPPER_BOUND(record, 1);
-
-			IF tempLowerBound <> 0
-				OR (tempUpperBound <> UPPER_LIMIT_4_PORT
-				AND tempUpperBound <> UPPER_LIMIT_8_PORT)
-			THEN
-				statStatus := Status#ERR_ARRAY_UNSUPPORTED;
+            IF  masterType = MasterType#INVALID THEN
+                statStatus := Status#ERR_ARRAY_REFERENCE; 
                 RETURN;
-			ELSE // Check mode
-                statFBState := FB_STATE_PREPARE_RESET;
-                statStatus := Status#STATUS_SUBSEQUENT_CALL;
-			END_IF;
+            ELSIF masterType = MasterType#FOUR_PORT THEN
+                IF Record4Ports = NULL THEN
+                    statStatus := Status#ERR_ARRAY_UNSUPPORTED; 
+                    RETURN;
+                END_IF;
+                record := Record4Ports;
+            ELSIF masterType = MasterType#EIGHT_PORT THEN
+                IF Record8Ports = NULL THEN 
+                    statStatus := Status#ERR_ARRAY_UNSUPPORTED; 
+                    RETURN;
+                END_IF;
+                record := Record8Ports;
+            END_IF;
+            
+            //everything okay, start processing
+            statFBState := StateMaster#FB_STATE_PREPARE_RESET;
+            statStatus := Status#STATUS_SUBSEQUENT_CALL;
 
         END_METHOD
 
         METHOD PUBLIC Execute
             VAR_TEMP
                 tempIndex : INT;
+                tempLength : UINT;
             END_VAR
 
             CASE statFBState OF
                 StateMaster#FB_STATE_NO_PROCESSING:
                     ; // No processing active
                     // END_REGION no processing
+
+                StateMaster#FB_STATE_ERROR:
+                    ; //error step. Do nothing
+                    //to re-enable operation, call reset()
 
                 StateMaster#FB_STATE_PREPARE_RESET:
                     statRecStruct.reset.ExtendedFunctionNum := FunctionType#FUNC_PUSH;
@@ -134,13 +158,13 @@ NAMESPACE Simatic.Ax.IOLink
                     instWrRec(request    := true,
                         ID     := statHwID,
                         index  := index,
-                        length    := LEN_HEADER,
+                        length    := TO_UINT(Lengths#MASTER_HEADER),
                         record := statBuffer);
 
                     IF instWrRec.DONE = TRUE THEN
                         instWrRec(request := FALSE, record := statBuffer); // Reset request
 
-                        IF statMode = MODE_BACKUP THEN
+                        IF statMode = MasterMode#BACKUP THEN
                             statFBState := stateMaster#FB_STATE_BACKUP;
                         ELSE
                             statFBState := stateMaster#FB_STATE_RESTORE;
@@ -151,7 +175,7 @@ NAMESPACE Simatic.Ax.IOLink
                         statSubfunctionStatus := instWrRec.STATUS;
                         statFBErrorState := statFBState;
                     ELSIF instWrRec.ERROR = TRUE THEN
-                        statStatus := Status#ERR_WRRC_RESET;
+                        statStatus := Status#ERR_WRREC;
                         statSubfunctionStatus := instWrRec.STATUS;
                         statFBErrorState := statFBState;
                     END_IF;
@@ -161,37 +185,37 @@ NAMESPACE Simatic.Ax.IOLink
                     instRdRec(request    := TRUE,
                         ID     := statHwID,
                         index  := index,
-                        maxLength   := LEN_HEADER + MAX_SIZE_SEGMENT,
+                        maxLength   := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
                         record := statBuffer);
 
                     // evaluation of RDREC
                     IF instRdRec.VALID = TRUE THEN
                         DeserializeBig(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
-                        IF instRdRec.length > LEN_HEADER AND statRecStruct.backup.ExtendedFunctionNum = FUNC_PULL THEN
-                            statStatus := STATUS_OFFSET_BACKUP OR statRecStruct.backup.SequenceNo.%B0;  // append segment number
+                        IF instRdRec.length > TO_UINT(Lengths#MASTER_HEADER) AND statRecStruct.backup.ExtendedFunctionNum = FunctionType#FUNC_PULL THEN
+                            statStatus := Status#STATUS_OFFSET_BACKUP OR statRecStruct.backup.SequenceNo.%B0;  // append segment number
                             statSegment := TO_DINT(statRecStruct.backup.SequenceNo);
-                            tempLen := instRdRec.length - LEN_HEADER;
+                            tempLength := instRdRec.length - TO_UINT(Lengths#MASTER_HEADER);
 
-                            FOR tempIndex := 0 TO tempLen - UINT#1 DO
-                                record[tempIndex + statAddress] := statRecStruct.backup.payload[tempIndex];
+                            FOR tempIndex := 0 TO TO_INT(tempLength) - 1 DO
+                                record^[tempIndex + statAddress] := statRecStruct.backup.payload[tempIndex];
                             END_FOR;
 
                             // add total length of data
-                            statLen := statLen + tempLen;
+                            statLen := statLen + tempLength;
 
                             // set pointer to next entry in parameter blob
-                            statAddress := statAddress + tempLen;
+                            statAddress := statAddress + tempLength;
 
-                        ELSIF instRdRec.length = LEN_HEADER THEN
+                        ELSIF instRdRec.length = TO_UINT(Lengths#MASTER_HEADER) THEN
                             // Reset request
                             instRdRec(request    := FALSE,
                             record := statBuffer);
 
-                            statStatus := STATUS_EXECUTION_FINISHED;
+                            statStatus := Status#STATUS_EXECUTION_FINISHED;
                         END_IF;
 
                     ELSIF instRdRec.ERROR = TRUE THEN
-                        statStatus            := Status#ERR_RDREC_BACKUP;
+                        statStatus            := Status#ERR_RDREC;
                         statSubfunctionStatus := instRdRec.STATUS;
                         statFBErrorState      := statFBState;
                         statLen               := instRdRec.length;
@@ -203,11 +227,11 @@ NAMESPACE Simatic.Ax.IOLink
                     IF instWrRec.BUSY = FALSE AND instWrRec.DONE = FALSE THEN // Writing hasn't started
                         statRecStruct.restore.ExtendedFunctionNum := FunctionType#FUNC_PUSH;
                         statRecStruct.restore.SequenceNo := TO_DWORD(statSegment); // sequence number
-                        statStatus := STATUS_OFFSET_RESTORE OR statRecStruct.restore.SequenceNo.%B0;
+                        statStatus := Status#STATUS_OFFSET_RESTORE OR statRecStruct.restore.SequenceNo.%B0;
 
                         // load segment data = payload
-                        FOR tempIndex := 0 TO MAX_SIZE_SEGMENT - UINT#1 DO
-                            statRecStruct.restore.payload[tempIndex] := record[tempindex + statAddress];
+                        FOR tempIndex := 0 TO Lengths#MASTER_RECORD_SEGMENT - 1 DO
+                            statRecStruct.restore.payload[tempIndex] := record^[tempindex + statAddress];
                         END_FOR;
 
                         //move into buffer
@@ -219,13 +243,13 @@ NAMESPACE Simatic.Ax.IOLink
                     instWrRec(request    := TRUE,
                         ID     := statHwID,
                         index  := index,
-                        length := LEN_HEADER + MAX_SIZE_SEGMENT,
+                        length := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
                         record := statBuffer);
 
                     IF instWrRec.DONE = TRUE THEN
-                        statLen := statLen + MAX_SIZE_SEGMENT;
+                        statLen := statLen + Lengths#MASTER_RECORD_SEGMENT;
                         instWrRec(request := FALSE, record := statBuffer); // Reset request
-                        statFBState := FB_STATE_VERIFY;
+                        statFBState := StateMaster#FB_STATE_VERIFY;
 
                     ELSIF instWrRec.ERROR = TRUE THEN
                         statStatus := Status#ERR_WRREC_RESTORE;
@@ -239,17 +263,17 @@ NAMESPACE Simatic.Ax.IOLink
                     instRdRec(request    := TRUE,
                         ID     := statHwID,
                         index  := index,
-                        maxLength   := LEN_HEADER + MAX_SIZE_SEGMENT,
+                        maxLength   := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
                         record := statBuffer);
 
                         DeserializeBig(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
 
-                    IF instRdRec.VALID = TRUE AND statRecStruct.backup.ExtendedFunctionNum = FUNC_PULL THEN
+                    IF instRdRec.VALID = TRUE AND statRecStruct.backup.ExtendedFunctionNum = FunctionType#FUNC_PULL THEN
                         IF statRecStruct.backup.SequenceNo = SeqNoMaster#SEQ_NUM_RESTORE_ONGOING
                             OR statRecStruct.backup.SequenceNo = SeqNoMaster#SEQ_NUM_ACTIVATION_ONGOING
                         THEN
                             statSegment := statSegment + 1;
-                            statAddress := statAddress + MAX_SIZE_SEGMENT;
+                            statAddress := statAddress + Lengths#MASTER_RECORD_SEGMENT;
 
                             // Reset request
                             instRdRec(request    := FALSE,
@@ -284,14 +308,56 @@ NAMESPACE Simatic.Ax.IOLink
                     // END_REGION undefined state no relevant case, ready for new request
             END_CASE;
 
+            // Write outputs
+		IF (statStatus = Status#STATUS_EXECUTION_FINISHED) AND (statDone = FALSE) THEN // Execution finished without errors
+			// REGION execution finished
+			statDone  := TRUE;
+			statBusy  := FALSE;
+			statError := FALSE;
+			RecordLength := statLen;
+			// execution aborted --> set state no processing
+			statFBState := StateMaster#FB_STATE_NO_PROCESSING;
+			// END_REGION execution finished
+
+		ELSIF (statStatus.%X15 = TRUE) AND (statError = FALSE) THEN // Error occurred (#statStatus is 16#8000 to 16#FFFF)
+			// REGION error occured
+			statDone  := FALSE;
+			statBusy  := FALSE;
+			statError := TRUE;
+			// Write diagnostics
+			Diagnostics.status            := statStatus;
+			Diagnostics.subfunctionStatus := statSubfunctionStatus;
+			Diagnostics.stateNumber       := statFBErrorState;
+			// Call instructions with FALSE to be ready for next job
+			instRdRec(request    := FALSE,
+				record := statBuffer);
+
+			instWrRec(request := FALSE, 
+                record := statBuffer);
+			// execution aborted --> set state no processing
+			statFBState := StateMaster#FB_STATE_ERROR;
+            RecordLength := 0;
+
+		END_IF;
+
+        END_METHOD
+
+        METHOD PUBLIC OVERRIDE Reset
+        
+            //clear internal FB calls
+			instRdRec(request    := FALSE,
+				record := statBuffer);
+
+			instWrRec(request := FALSE, 
+                record := statBuffer);
+
+            RecordLength := 0;
+
+            SUPER.Reset();
         END_METHOD
 
 
     END_CLASS
-
-    TYPE
-        MasterMode : USINT (BACKUP := USINT#0, RESTORE := USINT#1, INVALID := USINT#2);
-    END_TYPE
 
 END_NAMESPACE
     

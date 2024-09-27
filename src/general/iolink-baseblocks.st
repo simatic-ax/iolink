@@ -1141,7 +1141,6 @@ NAMESPACE Simatic.Ax.IOLink
 						statStatus := STATUS_OFFSET_BACKUP OR statRecStruct.backup.SequenceNo.%B0;  // append segment number
 						statSegment := TO_DINT(statRecStruct.backup.SequenceNo);
 						tempLen := instRdRec.length - LEN_HEADER;
-
 						FOR tempIndex := 0 TO tempLen - UINT#1 DO
 							record[tempIndex + statAddress] := statRecStruct.backup.payload[tempIndex];
 						END_FOR;
