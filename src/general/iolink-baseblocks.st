@@ -503,10 +503,10 @@ NAMESPACE Simatic.Ax.IOLink
 			statEmptyDiagnostics : LIOLink_typeDiagnostics;                   // Empty diagnostics information (for initialization purposes only)
 			instRdRec            : ReadRecord;                                // System function "read data record"
 			instRdDiag           : ReadRecord;                                // System function "read data record"
-			statDiagRecord       : Array[0..LAST_INDEX_DIAG_RECORD] of Byte;  // Data record of port diagnose
+			statDiagRecord       : Array[0..Lengths#RECORD - 1] of Byte;  // Data record of port diagnose
 			statDiagRecordEco    : LIOLink_typeEvents;
 			statCap              : UInt;                                      // Static value for input 'cap'
-			statRead             : Array[0..231] of Byte;                     // Data record, Output of RDREC
+			statRead             : Array[0..Lengths#RECORD - 1] of Byte;  // Data record, Output of RDREC
 			statIndexDiag        : UInt;                                      // Static value for index of data record of port diagnose
 			statPortNumber       : Int := 8;                                  // Number of Ports of IO-Link-Master
 			statPortEco          : UInt := UINT#1;                            // Static value for a port counter of EcoPN

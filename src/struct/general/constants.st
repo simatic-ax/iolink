@@ -6,6 +6,7 @@ TYPE
         STATUS_NO_CALL            := WORD#16#7000,   // No job being currently processed
         STATUS_FIRST_CALL         := WORD#16#7001,   // First call after incoming new job (rising edge 'execute')
         STATUS_SUBSEQUENT_CALL    := WORD#16#7002,   // Subsequent call during active processing without further details
+        STATUS_DONE			      := WORD#16#7003,
         STATUS_OFFSET_BACKUP      := WORD#16#7100,   // Offset for status during backup operation
         STATUS_OFFSET_RESTORE     := WORD#16#7200,   // Offset for status during restore operation
         ERR_EXECUTION_ACTIVE      := WORD#16#8001,   // A command is already being executed
@@ -33,11 +34,11 @@ TYPE
         SUB_STATUS_NO_ERROR := WORD#16#0000
     );
 
-
         Lengths : INT (
             RECORD := 232,
             RECORD_HEADER := 8,
             RECORD_WITH_HEADER := RECORD + RECORD_HEADER,
+            MAX_PORTS := 8,
             PORT_EVENT_CODES := 5,
             PORT_EVENTS := 8,
             MASTER_HEADER := 6,
@@ -86,6 +87,13 @@ TYPE
 			FB_STATE_BACKUP            := 11,                 // FB state: backup
 			FB_STATE_RESTORE           := 21,                 // FB state: restore segment data
 			FB_STATE_VERIFY            := 22,                 // FB state: verify restore
+            FB_STATE_ERROR             := 99
+        );
+
+        StateDiagnose : DINT (
+            FB_STATE_NO_PROCESSING     := 0,                   // FB state: No processing
+			FB_STATE_READ_CAP          := 1,                   // FB state: Read CAP
+			FB_STATE_READ_DIAG         := 2,                   // FB state: Read diagnose
             FB_STATE_ERROR             := 99
         );
 

@@ -1,6 +1,6 @@
 # General information
 name: "@simatic-ax/iolink"
-version: 0.0.0-placeholder
+version: 0.0.1-c
 author: Siemens AG
 # Description will be displayed in the apax extension
 description: <add your description here, which will be shown in the apax extension>
@@ -39,12 +39,14 @@ files:
   - 'snippets'
 dependencies:
   #system packages
-  "@ax/system-timer": ^7.0.17
-  "@ax/system-serde": ^7.0.17
+  "@ax/system-timer": ^7.1.47
+  "@ax/system-serde": ^7.1.47
   #simatic-1500-specific system packages
   "@ax/simatic-1500-hardware-utilities": ^1.0.5
   "@ax/simatic-1500-distributedio": ^7.0.1
-  
+
   #packages from simatic ax github community
   "@simatic-ax/conversion": ^2405.0.0
-  
+
+scripts:
+  pub: apax publish -p simatic-ax-iolink-0.0.1-c.apax.tgz -r https://npm.pkg.github.com/
