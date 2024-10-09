@@ -1,9 +1,4 @@
 NAMESPACE Simatic.Ax.IOLink
-TYPE
-
-    HW_IO  : Word (default := WORD#0);
-    HW_ANY : Word (default := WORD#0);
-END_TYPE
 
 FUNCTION Chars_TO_Strg
     USING Simatic.Ax.Conversion.Arrays;

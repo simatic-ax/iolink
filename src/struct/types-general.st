@@ -1,6 +1,7 @@
 NAMESPACE Simatic.Ax.IOLink
+
     TYPE
-        LIOLink_typeJob                : STRUCT                  // structure of data record for restore (NEW)
+        LIOLink_typeJob                : STRUCT          // structure of data record for restore (NEW)
             ExtendedFunctionNum: Byte;                   // extended function number (01=PUSH, 02=PULL)
             Options            : Byte;                   // options, not used
             SequenceNo         : DWord;                  // sequence number (please see manual)

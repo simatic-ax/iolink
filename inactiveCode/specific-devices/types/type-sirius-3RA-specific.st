@@ -89,7 +89,7 @@ TYPE
   LIOLink_3RA_typeConfig : STRUCT
   /// LIOLink_3RA_typeConfig
 //Contains all the possible configurations of 3RA
-      reserved : Array[0..7] of Byte := [BYTE#16#0021, 3(BYTE#16#0000), BYTE#16#0005];   // Reserved
+      reserved : Array[0..7] of Byte := [BYTE#16#0021, 3(BYTE#16#0000), BYTE#16#0005, 3(BYTE#16#0000)];   // Reserved
       starter1 : LIOLink_3RA_typeConfigStarterLong;   // Config Data of Starter 1
       starter2 : LIOLink_3RA_typeConfigStarterShort;   // Config Data of Starter 2
       starter3 : LIOLink_3RA_typeConfigStarterLong;   // Config Data of Starter 3
@@ -183,8 +183,8 @@ TYPE
       fwRevision : String[4];   // ID23: Firmware revision
       appSpecificName : String[32];   // ID24: Application specific name
       diagnostics : LIOLink_3RA_typeDiag;   // ID90: Group diagnostics
-      actualConfig : LIOLink_3RA_typeConfig := ([16#0021, 3(16#0000), 16#0005], ((), (), (), (), (), (), (), ()), ((), (), (), (), (), ()), ((), (), (), (), (), (), (), ()), ((), (), (), (), (), ()), (), (), (), (), (), ());   // ID105: Actual configuration
-      targetConfig : LIOLink_3RA_typeConfig := ([16#0021, 3(16#0000), 16#0005], ((), (), (), (), (), (), (), ()), ((), (), (), (), (), ()), ((), (), (), (), (), (), (), ()), ((), (), (), (), (), ()), (), (), (), (), (), ());   // ID130: Target configuration
+      actualConfig : LIOLink_3RA_typeConfig;   // ID105: Actual configuration
+      targetConfig : LIOLink_3RA_typeConfig;   // ID130: Target configuration
    END_STRUCT;
 
 END_TYPE

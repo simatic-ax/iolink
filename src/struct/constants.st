@@ -6,7 +6,7 @@ TYPE
         STATUS_NO_CALL            := WORD#16#7000,   // No job being currently processed
         STATUS_FIRST_CALL         := WORD#16#7001,   // First call after incoming new job (rising edge 'execute')
         STATUS_SUBSEQUENT_CALL    := WORD#16#7002,   // Subsequent call during active processing without further details
-        STATUS_DONE			      := WORD#16#7003,
+        STATUS_DONE			      := WORD#16#7003,   // Subsequent call when the functionality is already finished
         STATUS_OFFSET_BACKUP      := WORD#16#7100,   // Offset for status during backup operation
         STATUS_OFFSET_RESTORE     := WORD#16#7200,   // Offset for status during restore operation
         ERR_EXECUTION_ACTIVE      := WORD#16#8001,   // A command is already being executed
@@ -81,20 +81,20 @@ TYPE
         );
 
         StateMaster : DINT(
-			FB_STATE_NO_PROCESSING     := 0,                 // FB state: No processing
-			FB_STATE_RESET             := 1,                 // FB state: reset (essential before each backup/restore operation)
+			FB_STATE_NO_PROCESSING     := 0,                  // FB state: No processing
+			FB_STATE_RESET             := 1,                  // FB state: reset (essential before each backup/restore operation)
 			FB_STATE_PREPARE_RESET	   := 10,			
 			FB_STATE_BACKUP            := 11,                 // FB state: backup
 			FB_STATE_RESTORE           := 21,                 // FB state: restore segment data
 			FB_STATE_VERIFY            := 22,                 // FB state: verify restore
-            FB_STATE_ERROR             := 99
+            FB_STATE_ERROR             := 99                  // FB state: error
         );
 
         StateDiagnose : DINT (
             FB_STATE_NO_PROCESSING     := 0,                   // FB state: No processing
 			FB_STATE_READ_CAP          := 1,                   // FB state: Read CAP
 			FB_STATE_READ_DIAG         := 2,                   // FB state: Read diagnose
-            FB_STATE_ERROR             := 99
+            FB_STATE_ERROR             := 99                   // FB state: error
         );
 
         SeqNoMaster : DWORD (
@@ -105,7 +105,7 @@ TYPE
 			SEQ_NUM_CRC_FAILED          := DWORD#16#FFFF_FF04,  // Sequence number: CRC check failed
 			SEQ_NUM_BLOB_INVALID        := DWORD#16#FFFF_FF05,  // Sequence number: blob data invalid
 			SEQ_NUM_WRONG_SEQUENCE      := DWORD#16#FFFF_FF06,  // Sequence number: wrong sequence number
-			SEQ_NUM_WRONG_SIZE          := DWORD#16#FFFF_FF07  // Sequence number: wrong data record size
+			SEQ_NUM_WRONG_SIZE          := DWORD#16#FFFF_FF07   // Sequence number: wrong data record size
         );
 
         BitmaskByte : BYTE (
