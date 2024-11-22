@@ -1,6 +1,6 @@
 # General information
 name: "@simatic-ax/iolink"
-version: 0.0.1-c
+version: 0.0.0-placeholder
 author: Siemens AG
 # Description will be displayed in the apax extension
 description: Access IO Link device and master using acyclic data exchange
@@ -45,6 +45,3 @@ files:
   - 'docs'
   - 'src'
   - 'snippets'
-
-scripts:
-  pub: apax publish -p simatic-ax-iolink-0.0.1-c.apax.tgz -r https://npm.pkg.github.com/

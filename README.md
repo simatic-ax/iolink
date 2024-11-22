@@ -27,15 +27,21 @@ Using Simatic.Ax.iolink;
 
 | Classes | Description         |
 |---------|---------------------|
-| *xyz*     | *description for xyz* |
+| IOLinkBase | Basic class containing common functionality for all other classes. Only for internal use |
+| Device | Read or write data to a IO-Link device |
+| Master | Backup or restore a complete configuration of a IO-Link Master |
+| Diagnose | Retrieve diagnostic data for a IO-Link Master |
 
+You can find a detailed documentation of the blocks and types [here](docs/main.md)
+<!-- 
 | Functions   | Description             |
 |-------------|-------------------------|
-| *xyz*       | *description for*xyz** |
+| *xyz*       | *description for*xyz**  |
 
 | Function Blocks | Description           |
 |-----------------|-----------------------|
-| *xyz*           | *description for xyz* |
+| *xyz*           | *description for xyz* | 
+-->
 
 ## Contribution
 
