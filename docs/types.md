@@ -4,7 +4,7 @@ List of all possible values for named value data types and structured data types
 
 ## Structured data types
 
-### Stuctured type LIOLink_typeIdentificationObjects
+### LIOLink_typeIdentificationObjects
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ List of all possible values for named value data types and structured data types
 | locationTag    | String[32]| Location tag |
 | functionTag    | String[32]| Function tag |
 
-### Structured type LIOLink_typePortEventQualifier
+### LIOLink_typePortEventQualifier
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
@@ -31,14 +31,14 @@ List of all possible values for named value data types and structured data types
 | eventType| Byte | 0: Reserved / 1: Notification / 2: Warning / 3: Error|
 | mode     | Byte | 0: Reserved / 1: Event single shot / 2: Event disappears / 3: Event appears|
 
-### Structured type LIOLink_typePortEventCodes
+### LIOLink_typePortEventCodes
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
 |eventCode | Word | IO-Link EventCode |
 |eventQualifier | LIOLink_typePortEventQualifier | IO-Link EventQualifier|
 
-### Structured type LIOLink_typeDiagnostics
+### LIOLink_typeDiagnostics
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
@@ -46,13 +46,13 @@ List of all possible values for named value data types and structured data types
 |subfunctionStatus | DWord | Status or return value of called FB's, FCs and system blocks|
 |stateNumber | DInt | State in the state machine of the block where the error occurred|
 
-### Structured type LIOLink_typePortEvents
+### LIOLink_typePortEvents
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
 | event | Array[0..Lengths#PORT_EVENT_CODES - 1] of LIOLink_typePortEventCodes | Events of a port|
 
-### Structured type LIOLink_typeEvents
+### LIOLink_typeEvents
 
 | Symbol | Datatype | Explanation |
 | --- | --- | --- |
@@ -110,3 +110,52 @@ Type: USINT
 | FOUR_PORT | Use the data structure for a 4-port master |
 | EIGHT_PORT | Use the data structure for a 8-port master |
 | INVALID | Invalid mode, default |
+
+### Lengths
+
+Type: Int
+
+| Name | Value | Explanation |
+| --- | --- | --- |
+| RECORD                            | 232 | Length in bytes of a record |
+| RECORD_HEADER                     | 8 | Length in bytes of a record header |
+| RECORD_WITH_HEADER                | RECORD + RECORD_HEADER | Length in bytes of a complete record |
+| MAX_PORTS                         | 8 | Maximum number of ports of an IO-Link master |
+| PORT_EVENT_CODES                  | 5 | Number of event codes for each port of an IO-Link master |
+| PORT_EVENTS                       | 8 | Number of events for every port event code |
+| MASTER_HEADER                     | 6 | Length in bytes of a master header |
+| MASTER_RECORD_SEGMENT             | 234 | Length in bytes of a master record segment |
+| MASTER_RECORD_SEGMENT_WITH_HEADER | MASTER_RECORD_SEGMENT + MASTER_HEADER | Length in bytes of a complete master record |
+| MASTER_RECORD_4_PORT              | 10240 | Maximum number of bytes of an IO-Link master record with 4 ports |
+| MASTER_RECORD_8_PORT              | 17550 | Maximum number of bytes of an IO-Link master record with 8 ports |
+
+### Cap
+
+Type: Word
+
+| Name | Value | Explanation |
+| --- | --- | --- |
+|CAP_LEGACY              | 16#00E3 |  Siemens (old) Standard CAP: 227 |
+|CAP_STANDARD            | 16#B400 | IO-Link Standard CAP: 16#B400 |
+|INDEX_CAP_IOLINK        | 16#B000 | Index of the data record for IOLM_Info. Only IO-Link-Masters with CAP=16#B000 support this call |
+
+### Limit
+
+Type: UInt
+
+| Name | Value | Explanation |
+| --- | --- | --- |
+| MAX_PORT                  | USINT#63   | Max. possible port|
+| MAX_INDEX                 | UINT#32767 |  Max. possible index|
+| INDEX_PORT_FUNC           | UINT#65535 |  Index to address port functions|
+| MAX_SUBINDEX              | USINT#255   | Max. possible subindex|
+
+### FunctionType
+
+Type: BYTE
+
+| Name | Value | Explanation |
+| --- | --- | --- |
+|FUNC_PUSH   |16#01 |  Extended function number for push |
+|FUNC_PULL   |16#02 | Extended function number for pull |
+

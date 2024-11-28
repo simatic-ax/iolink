@@ -30,4 +30,4 @@ This method has no interface. After starting a command (backup or restore), it n
 
 ## Method Reset
 
-This method has no interface. It resets the internal state in case of an error. 
+This method has no interface. It resets the internal state in case of an error.

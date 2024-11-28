@@ -33,15 +33,6 @@ Using Simatic.Ax.iolink;
 | Diagnose | Retrieve diagnostic data for a IO-Link Master |
 
 You can find a detailed documentation of the blocks and types [here](docs/main.md)
-<!-- 
-| Functions   | Description             |
-|-------------|-------------------------|
-| *xyz*       | *description for*xyz**  |
-
-| Function Blocks | Description           |
-|-----------------|-----------------------|
-| *xyz*           | *description for xyz* | 
--->
 
 ## Contribution
 
