@@ -3,7 +3,7 @@
 ## Public variables
 
 | Symbol | Datatype | Explanation |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | events | LIOLink_typeEvents | Diagnostic data, that has been retreived |
 
 ## Method Start

@@ -3,7 +3,7 @@
 ## Public variables
 
 | Symbol | Datatype | Explanation |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | Record4Ports | REF_TO LIOLink_typeMaster4PortRecordData | Reference to a data structure, sufficient for a 4-port master |
 | Record8Ports | REF_TO LIOLink_typeMaster8PortRecordData | Reference to a data structure, sufficient for a 8-port master |
 | RecordLength | DINT | Number of bytes in the record structure. Will be written internally when performing a backup, used to determine the amount of data for a restore |
