@@ -1,6 +1,7 @@
 NAMESPACE Simatic.Ax.IOLink
 
     TYPE
+        
         LIOLink_typeJob                : STRUCT          // structure of data record for restore (NEW)
             ExtendedFunctionNum: Byte;                   // extended function number (01=PUSH, 02=PULL)
             Options            : Byte;                   // options, not used
@@ -43,4 +44,10 @@ NAMESPACE Simatic.Ax.IOLink
         LIOLink_typeMaster8PortRecordData : ARRAY[0..Lengths#MASTER_RECORD_8_PORT - 1] OF BYTE;
 
     END_TYPE
+
+    TYPE
+        HW_IO  : Word (default := WORD#0);
+        HW_ANY : Word (default := WORD#0);
+    END_TYPE
+    
 END_NAMESPACE

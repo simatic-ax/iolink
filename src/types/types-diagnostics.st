@@ -49,11 +49,7 @@ NAMESPACE Simatic.Ax.IOLink
 
    END_TYPE
 
-   TYPE
 
-      HW_IO  : Word (default := WORD#0);
-      HW_ANY : Word (default := WORD#0);
-  END_TYPE
   
   
 END_NAMESPACE
