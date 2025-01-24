@@ -98,6 +98,7 @@ TYPE
         );
 
         SeqNoMaster : DWORD (
+            //16#0000_0000 - 16#FFFF_FFF0: Segments
             SEQ_NUM_RESET               := DWORD#16#FFFF_FFFF,  // Sequence number for reset before backup/restore operations
 			SEQ_NUM_RESTORE_ONGOING     := DWORD#16#FFFF_FF01,  // Sequence number: restore ongoing
 			SEQ_NUM_ACTIVATION_ONGOING  := DWORD#16#FFFF_FF02,  // Sequence number: activation ongoing
