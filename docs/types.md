@@ -70,7 +70,7 @@ Type: WORD
 | STATUS_NO_CALL            | 16#7000 | No job being currently processed |
 | STATUS_FIRST_CALL         | 16#7001 | First call after incoming new job (rising edge 'execute') |
 | STATUS_SUBSEQUENT_CALL    | 16#7002 | Subsequent call during active processing without further details |
-| STATUS_DONE			    | 16#7003 | Subsequent call when the functionality is already finished |
+| STATUS_DONE       | 16#7003 | Subsequent call when the functionality is already finished |
 | STATUS_OFFSET_BACKUP      | 16#7100 | Offset for status during backup operation |
 | STATUS_OFFSET_RESTORE     | 16#7200 | Offset for status during restore operation |
 | ERR_EXECUTION_ACTIVE      | 16#8001 | A command is already being executed |
@@ -158,4 +158,3 @@ Type: BYTE
 | --- | --- | --- |
 |FUNC_PUSH   |16#01 |  Extended function number for push |
 |FUNC_PULL   |16#02 | Extended function number for pull |
-
