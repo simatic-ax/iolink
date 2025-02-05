@@ -1,10 +1,14 @@
 NAMESPACE Simatic.Ax.iolink
 
-    FUNCTION Decode
-        VAR_INPUT
+    CLASS Decoder
+
+        VAR PUBLIC
             RefToMasterConfig4Port : REF_TO LIOLink_typeMaster4PortRecordData;
             RefToMasterConfig8Port : REF_TO LIOLink_typeMaster8PortRecordData;
+            DecodedConfig : DecodedConfig;
         END_VAR
+
+        METHOD DecodeMasterConfig
 
         VAR_TEMP
             configInternal : MasterType;
@@ -24,12 +28,13 @@ NAMESPACE Simatic.Ax.iolink
             RETURN;
         END_IF;
         
+
         
 
         //Write outputs
         ConfigType := configInternal;
         ConfigValid := TRUE;
-    END_FUNCTION
-
+    END_METHOD
+END_CLASS
 
 END_NAMESPACE
