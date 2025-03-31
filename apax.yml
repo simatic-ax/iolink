@@ -22,14 +22,14 @@ installStrategy: strict
 apaxVersion: 3.2.1
 # Dependencies
 devDependencies:
-  '@ax/sdk': ^2411.1.0
+  '@ax/sdk': ^2411.0.0
   "@simatic-ax/snippetscollection": ^1.0.0
 dependencies:
   #system packages
-  "@ax/system-timer": ^8.0.7
-  "@ax/system-serde": ^8.0.7
+  "@ax/system-timer": ^8.0.0
+  "@ax/system-serde": ^8.0.0
   #simatic-1500-specific system packages
-  "@ax/simatic-1500-distributedio": ^8.0.6
+  "@ax/simatic-1500-distributedio": ^8.0.0
   #packages from simatic ax github community
   "@simatic-ax/conversion": ^2411.0.0
 
