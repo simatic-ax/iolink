@@ -30,7 +30,7 @@ Set the communication properties to the device you want to communicate with. The
 
 ## Method Execute
 
-This method has no interface. After starting a command (read or write), it needs to be called cyclically to execute the functionality, until the functionality is executed successfully or an error occured. 
+This method has no interface. After starting a command (read or write), it needs to be called cyclically to execute the functionality, until the functionality is executed successfully or an error occured.
 
 ## Method Reset
 

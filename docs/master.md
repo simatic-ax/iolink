@@ -26,7 +26,7 @@
 
 ## Method Execute
 
-This method has no interface. After starting a command (backup or restore), it needs to be called cyclically to execute the functionality, until the functionality is executed successfully or an error occured. 
+This method has no interface. After starting a command (backup or restore), it needs to be called cyclically to execute the functionality, until the functionality is executed successfully or an error occured.
 
 ## Method Reset
 
