@@ -26,10 +26,10 @@ devDependencies:
   "@simatic-ax/snippetscollection": ^1.0.0
 dependencies:
   #system packages
-  "@ax/system-timer": ^8.0.0
-  "@ax/system-serde": ^8.0.0
+  "@ax/system-timer": ^10.0.0
+  "@ax/system-serde": ^10.0.0
   #simatic-1500-specific system packages
-  "@ax/simatic-1500-distributedio": ^8.0.0
+  "@ax/simatic-1500-distributedio": ^9.0.0
   #packages from simatic ax github community
   "@simatic-ax/conversion": ^2411.0.0
 
