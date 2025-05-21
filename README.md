@@ -22,7 +22,7 @@ apax add @simatic-ax/iolink
 Add the namespace in your ST code:
 
 ```iec-st
-Using Simatic.Ax.iolink;
+Using Simatic.Ax.IOLink;
 ```
 
 | Classes | Description         |

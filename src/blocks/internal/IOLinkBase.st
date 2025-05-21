@@ -1,5 +1,5 @@
 USING Siemens.Simatic.S71500.DistributedIO;
-NAMESPACE Simatic.Ax.iolink
+NAMESPACE Simatic.Ax.IOLink
     
     CLASS INTERNAL IOLinkBase
 
