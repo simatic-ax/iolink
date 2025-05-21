@@ -1,6 +1,6 @@
 USING AxUnit.Assert;
 
-NAMESPACE Simatic.Ax.iolink
+NAMESPACE Simatic.Ax.IOLink
 
     {TestFixture}
     CLASS MyTestFixture
