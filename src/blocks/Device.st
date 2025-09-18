@@ -138,11 +138,11 @@ NAMESPACE Simatic.Ax.IOLink
                 //found no issues, return TRUE
                 ReadWriteReqInternal := TRUE;
                 statBusy := TRUE;
+                statDone := FALSE;
+                statError := FALSE;
 
                 //check if cap needs to be read out before accessing the device
-                IF statcap <> UINT#0 THEN
-                    statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
-                ELSIF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
+                IF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
                     statFBState := StateDevice#FB_STATE_READ_CAP;
                 ELSE
                     statFBState := StateDevice#FB_STATE_PREPARE_WRITE;
@@ -178,7 +178,7 @@ NAMESPACE Simatic.Ax.IOLink
                         IF (instRdRec.VALID = FALSE) AND (instRdRec.ERROR = FALSE) THEN
                             IF instRdRec.request = FALSE THEN
                                 // call read record with Index 16#B000
-                                instRdRec.request := true;
+                                instRdRec.request := TRUE;
                                 instRdRec.ID := statHwID;
                                 instRdRec.index := TO_UINT(Cap#INDEX_CAP_IOLINK);
                                 instRdRec.maxLength := UINT#0;
