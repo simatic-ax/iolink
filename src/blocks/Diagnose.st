@@ -1,4 +1,4 @@
-USING Siemens.Simatic.S71500.DistributedIO;
+USING Siemens.Simatic.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
 
     CLASS PUBLIC Diagnose EXTENDS IOLinkBase
@@ -57,7 +57,7 @@ NAMESPACE Simatic.Ax.IOLink
             END_IF;
 
             //only allow valid hardware id
-            IF hwID = WORD#0 THEN
+            IF hwID = UINT#0 THEN
                 RETURN;
             END_IF;
 
@@ -131,7 +131,7 @@ NAMESPACE Simatic.Ax.IOLink
                             IF instRdRec.request = FALSE THEN
                                 // call read record with Index 16#B000
                                 instRdRec.request := TRUE;
-                                instRdRec.ID := statHwID;
+                                instRdRec.hardwareID := statHwID;
                                 instRdRec.index := TO_UINT(Cap#INDEX_CAP_IOLINK);
                                 instRdRec.maxLength := UINT#0;
                                 statFBState := StateDiagnose#FB_STATE_READ_CAP;
@@ -181,7 +181,7 @@ NAMESPACE Simatic.Ax.IOLink
                             IF (instRdDiag.VALID = FALSE) AND (instRdDiag.ERROR = FALSE) THEN
                                 IF instRdDiag.request = FALSE THEN
                                     instRdDiag.request := TRUE;
-                                    instRdDiag.ID := statHwID;
+                                    instRdDiag.hardwareID := statHwID;
                                     instRdDiag.index := statIndexDiag;
                                     instRdDiag.maxLength := UINT#0;
                                 END_IF;
@@ -223,7 +223,7 @@ NAMESPACE Simatic.Ax.IOLink
                                 IF (instRdDiag.VALID = FALSE) AND (instRdDiag.ERROR = FALSE) THEN
                                     IF instRdDiag.request = FALSE THEN
                                         instRdDiag.request := TRUE;
-                                        instRdDiag.ID := statHwID;
+                                        instRdDiag.hardwareID := statHwID;
                                         instRdDiag.index := statIndexDiag;
                                         instRdDiag.maxLength := UINT#0;
                                     END_IF;

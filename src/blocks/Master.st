@@ -1,4 +1,4 @@
-USING Siemens.Simatic.S71500.DistributedIO;
+USING Siemens.Simatic.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
 
     CLASS PUBLIC Master EXTENDS IOLinkBase
@@ -96,7 +96,7 @@ NAMESPACE Simatic.Ax.IOLink
                 RETURN;
             END_IF;
 
-            IF statHwID = WORD#0 THEN
+            IF statHwID = UINT#0 THEN
                 statStatus := Status#ERR_HARDWARE_ID_INVALID;
                 RETURN;
             END_IF;
@@ -155,11 +155,11 @@ NAMESPACE Simatic.Ax.IOLink
 
                 StateMaster#FB_STATE_RESET:
 
-                    instWrRec(request    := true,
-                        ID     := statHwID,
-                        index  := index,
-                        length    := TO_UINT(Lengths#MASTER_HEADER),
-                        record := statBuffer);
+                    instWrRec(request := TRUE,
+                        hardwareID := statHwID,
+                        index      := index,
+                        length     := TO_UINT(Lengths#MASTER_HEADER),
+                        record     := statBuffer);
 
                     IF instWrRec.DONE = TRUE THEN
                         instWrRec(request := FALSE, record := statBuffer); // Reset request
@@ -183,10 +183,10 @@ NAMESPACE Simatic.Ax.IOLink
 
                 StateMaster#FB_STATE_BACKUP:
                     instRdRec(request    := TRUE,
-                        ID     := statHwID,
-                        index  := index,
-                        maxLength   := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
-                        record := statBuffer);
+                        hardwareID := statHwID,
+                        index      := index,
+                        maxLength  := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
+                        record     := statBuffer);
 
                     // evaluation of RDREC
                     IF instRdRec.VALID = TRUE THEN
@@ -241,10 +241,10 @@ NAMESPACE Simatic.Ax.IOLink
 
                     // write segment data
                     instWrRec(request    := TRUE,
-                        ID     := statHwID,
-                        index  := index,
-                        length := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
-                        record := statBuffer);
+                        hardwareID := statHwID,
+                        index      := index,
+                        length     := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
+                        record     := statBuffer);
 
                     IF instWrRec.DONE = TRUE THEN
                         statLen := statLen + Lengths#MASTER_RECORD_SEGMENT;
@@ -261,10 +261,10 @@ NAMESPACE Simatic.Ax.IOLink
                 StateMaster#FB_STATE_VERIFY: // Verify restore
                     // REGION verify
                     instRdRec(request    := TRUE,
-                        ID     := statHwID,
-                        index  := index,
-                        maxLength   := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
-                        record := statBuffer);
+                        hardwareID := statHwID,
+                        index      := index,
+                        maxLength  := TO_UINT(Lengths#MASTER_RECORD_SEGMENT_WITH_HEADER),
+                        record     := statBuffer);
 
                         DeserializeBig(offset := UINT#0, value := statRecStruct.backup, buffer := statBuffer);
 
