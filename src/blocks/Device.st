@@ -1,4 +1,4 @@
-USING Siemens.Simatic.S71500.DistributedIO;
+USING Siemens.Simatic.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
 
     CLASS PUBLIC Device EXTENDS IOLinkBase
@@ -179,7 +179,7 @@ NAMESPACE Simatic.Ax.IOLink
                             IF instRdRec.request = FALSE THEN
                                 // call read record with Index 16#B000
                                 instRdRec.request := TRUE;
-                                instRdRec.ID := statHwID;
+                                instRdRec.hardwareID := statHwID;
                                 instRdRec.index := TO_UINT(Cap#INDEX_CAP_IOLINK);
                                 instRdRec.maxLength := UINT#0;
                                 statFBState := StateDevice#FB_STATE_READ_CAP;
@@ -230,7 +230,7 @@ NAMESPACE Simatic.Ax.IOLink
                     // send the required data record.
     
                     instWrRec(request := TRUE,
-                        ID := statHwID,
+                        hardwareID := statHwID,
                         index := statCap,
                         length := statLength,
                         record := statBuffer);
@@ -259,7 +259,7 @@ NAMESPACE Simatic.Ax.IOLink
     
                     // read data record on falling edge
                     instRdRec(request := NOT instPoll.output,
-                        ID := statHwID,
+                        hardwareID := statHwID,
                         index := statCap,
                         maxLength := UINT#0, // read all data available,
                         record := statBuffer);

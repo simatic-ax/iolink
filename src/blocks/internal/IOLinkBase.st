@@ -1,4 +1,4 @@
-USING Siemens.Simatic.S71500.DistributedIO;
+USING Siemens.Simatic.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
     
     CLASS INTERNAL IOLinkBase

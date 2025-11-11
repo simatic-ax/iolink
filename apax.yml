@@ -19,18 +19,18 @@ registries:
   '@simatic-ax': 'https://npm.pkg.github.com/'
 
 catalogs:
-  "@ax/simatic-ax": ^2504.0.0
+  "@ax/simatic-ax": ^2510.0.0
 
 # Dependencies
 devDependencies:
-  '@ax/sdk': ^2504.0.0
+  '@ax/sdk': ^2510.0.0
   "@simatic-ax/snippetscollection": ^1.1.0
 dependencies:
   #system packages
-  "@ax/system-timer": ^10.0.24
-  "@ax/system-serde": ^10.0.24
+  "@ax/system-timer": ^10.2.7
+  "@ax/system-serde": ^10.2.7
   #simatic-1500-specific system packages
-  "@ax/simatic-1500-distributedio": ^10.0.1
+  "@ax/simatic-distributedio": ^11.0.0
   # Project variables
 variables:
   APAX_BUILD_ARGS:
