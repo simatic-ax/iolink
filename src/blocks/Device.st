@@ -142,7 +142,10 @@ NAMESPACE Simatic.Ax.IOLink
                 statError := FALSE;
 
                 //check if cap needs to be read out before accessing the device
-                IF (statCap <> TO_UINT(Cap#CAP_STANDARD) AND statCap <> TO_UINT(Cap#CAP_LEGACY)) OR (statHwIDprevious <> statHwID) THEN // check if new device is connected => hwID changed
+                IF (statCap = TO_UINT(Cap#CAP_EMPTY) OR 
+                    ((statHwIDprevious <> statHwID) AND 
+                    (statCap = TO_UINT(Cap#CAP_STANDARD) OR statCap = TO_UINT(Cap#CAP_LEGACY))))
+                    THEN // check if new device is connected => hwID changed
                     statFBState := StateDevice#FB_STATE_READ_CAP;
                 ELSE
                     statFBState := StateDevice#FB_STATE_PREPARE_WRITE;

@@ -54,6 +54,7 @@ TYPE
         );
 
         Cap : WORD(
+            CAP_EMPTY               := WORD#16#0000,        // empty cap
             CAP_LEGACY              := WORD#16#00E3,        // Siemens (old) Standard CAP: 227
 			CAP_STANDARD            := WORD#16#B400,       // IO-Link Standard CAP: 16#B400
             INDEX_CAP_IOLINK        := WORD#16#B000        // Index of the data record for IOLM_Info. Only IO-Link-Masters with CAP=16#B000 support this call.
