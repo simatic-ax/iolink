@@ -1,4 +1,4 @@
-USING Siemens.Simatic.DistributedIO;
+USING Siemens.S7.DistributedIO;
 NAMESPACE Simatic.Ax.IOLink
 
     CLASS PUBLIC Master EXTENDS IOLinkBase
